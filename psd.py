@@ -18,7 +18,11 @@ def load_subj(x,folder):
     # for i in range(1,subj.values.shape[0]-1):
         # diff = subj.values[i,:]-subj.values[i-1,:]
         # mag[i-1] = math.sqrt(pow(diff[0],2)+pow(diff[1],2)+pow(diff[2],2))
+    x = np.array([0,1,2,3,4])*math.pi/4
+    f = np.sin(x)
     subj['mag'] = subj.pow(2).sum(1).values
+    subj['mag_SMA'] = subj.iloc[:,3].rolling(window=2).mean()
+    subj['mag_conv'] = np.convolve(subj['mag'].values,f)[:-4]
     # subj['mag_filt'] = gauss(subj['mag'].values,sigma=0.1)
     # subj['fft'] = calc_fft(subj['mag'].values)
     return subj
@@ -37,8 +41,8 @@ subs1 = {0,2,4,5}
 subs2 = {6,7}
 subs3 = {3,8,9}
 
-# for i in subs:
-#     plt.plot(data[i].values[:,3])
+for i in subs1:
+    plt.plot(data[i].values[:,3])
     
     
 freqs = list()
@@ -46,11 +50,12 @@ psd = list()
 
 plt.figure(figsize=(5, 4))
 for i in subs3:
-    fs, ps = signal.welch(data[i].values[:,3])
+    fs, ps = signal.welch(data[i].values[1:,4],fs=1/0.02)
     ps = ps/max(ps)
     freqs.append(fs)
     psd.append(ps)
-    plt.semilogx(fs, ps)
+    plt.plot(fs, ps)
+    # plt.semilogx(fs, ps)
     
 plt.title('PSD: power spectral density')
 plt.xlabel('Frequency')
