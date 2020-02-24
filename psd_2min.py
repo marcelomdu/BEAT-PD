@@ -6,7 +6,7 @@ import scipy.cluster.hierarchy as sch
 from numba import njit
 
 def load_subj(x,folder):
-    samples = 100
+    samples = 100*30 # one minute interval
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
     subj['mag_diff'] = calc_mag_diff(subj.values)
     subj['mag'] = subj.pow(2).sum(1).values
@@ -14,10 +14,11 @@ def load_subj(x,folder):
     psd = list()
     window = 'hann'
     for i in range(0,subj.values.shape[0],samples):
-        fs, ps = signal.welch(subj['mag_diff'].values[i:i+99],fs=50,window=window)
+        fs, ps = signal.welch(subj['mag_diff'].values[i:i+samples-1],fs=50,window=window)
+        ps = ps/np.max(ps)
         psd.append(ps)
     subj['mag_SMA'] = subj.iloc[:,3].rolling(window=2).mean()
-    psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,int(samples/2)).T
+    psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,129)
     return subj, psd
 
 @njit
@@ -49,8 +50,33 @@ for j in range(0,2):
         plt.xlabel('Frequency')
         plt.ylabel('Power')
         plt.tight_layout()
-        plt.plot(data[j][1][i])
+        #plt.plot(data[j][1][i])
         plt.semilogx(data[j][1][i])
+
+
+subj = 4
+a = 200
+b = 300
+
+plt.imshow(data[subj][1], cmap='viridis')
+plt.title('Subject:'+str(subj)+', Interval: ['+str(a)+':'+str(b)+']')
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 X = data[3][1].T[:,:]
 
