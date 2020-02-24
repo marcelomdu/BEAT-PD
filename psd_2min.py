@@ -6,7 +6,7 @@ import scipy.cluster.hierarchy as sch
 from numba import njit
 
 def load_subj(x,folder):
-    samples = 100
+    samples = 100*5 # ten seconds interval
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
     subj['mag_diff'] = calc_mag_diff(subj.values)
     subj['mag'] = subj.pow(2).sum(1).values
@@ -14,11 +14,13 @@ def load_subj(x,folder):
     psd = list()
     window = 'hann'
     for i in range(0,subj.values.shape[0],samples):
-        fs, ps = signal.welch(subj['mag_diff'].values[i:i+99],fs=50,window=window)
+        fs, ps = signal.welch(subj['mag_diff'].values[i:i+samples-1],fs=50,window=window)
+        ps = ps/np.max(ps)
         psd.append(ps)
     subj['mag_SMA'] = subj.iloc[:,3].rolling(window=2).mean()
-    psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,int(samples/2)).T
-    return subj, psd
+    n_psd = len(psd)
+    psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,129) # 129 is (nperseg)/2 used for signal.welch function
+    return subj, psd, n_psd
 
 @njit
 def calc_mag_diff(x):
@@ -36,12 +38,12 @@ data = list()
 folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
 
 for x in test_files[:10,0]:
-    data.append(load_subj(x,folder))
+    data.append(load_subj(x, folder))
 
 
 t = len(data[0][1])
 
-for j in range(0,2):
+for j in range(3,4):
     for i in range(0,4):
         plt.figure(i)
         plt.figure(figsize=(5, 4))
@@ -49,8 +51,31 @@ for j in range(0,2):
         plt.xlabel('Frequency')
         plt.ylabel('Power')
         plt.tight_layout()
-        plt.plot(data[j][1][i])
+        #plt.plot(data[j][1][i])
         plt.semilogx(data[j][1][i])
+
+
+for subj in range(0,10):
+    plt.figure(subj)
+    plt.title('Subject:'+str(subj)+' Tremor: '+str(test_files[subj,4]))
+    plt.imshow(data[subj][1], cmap='viridis')
+    plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 X = data[3][1].T[:,:]
 
