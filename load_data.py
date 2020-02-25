@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy import signal
 from numba import njit
+from sklearn.model_selection import train_test_split
 
 
 @njit
@@ -63,3 +64,5 @@ folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_d
 
 data, labels = load_subject(subject_id,ids_file,'tremor',folder)
 valid_data, valid_labels = threshold_data(data,labels,100)
+
+X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
