@@ -3,7 +3,8 @@ import numpy as np
 from scipy import signal
 from numba import njit
 from sklearn.model_selection import train_test_split
-
+from numpy.random import randint
+from itertools import compress
 
 @njit
 def calc_mag_diff(x):
@@ -25,8 +26,7 @@ def load_measurement(x,folder):
     psd = list()
     window = 'hann'
     for i in range(0,subj.values.shape[0],samples):
-        fs, ps = signal.welch(subj['mag_diff'].values[i:i+samples-1],
-                              fs=50,window=window)
+        fs, ps = signal.welch(subj['mag_diff'].values[i:i+samples-1], fs=50,window=window)
         ps = ps/np.max(ps)
         psd.append(ps)
     psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,129) # 129 is (nperseg)/2 used for signal.welch function
@@ -44,7 +44,7 @@ def load_subject(subject_id,ids_file,label_type,folder):
     return subject_measurements, measurements_labels
 
 
-def threshold_data(data,labels,threshold):
+def threshold_data(data,labels,threshold=100):
     valid_data = list()
     valid_labels = list()
     for i in range(0,len(data)):
@@ -55,14 +55,36 @@ def threshold_data(data,labels,threshold):
     valid_labels = np.stack(valid_labels)
     return valid_data, valid_labels
 
+def get_batch(data, labels):
+    valid_data, valid_labels = threshold_data(data,labels)
+    X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
+        
+    return X_train, X_test, y_train, y_test
+
+def get_pairs(data,labels):
+    matched = dict()
+    unmatched = dict()
+    pop_labels = dict()
+    n = int(data.shape[0]/2)
+    for i in range(0,n):
+        j = randint(0,data.shape[0])
+        matched['l'+str(i)] = data.pop(j)
+        pop_labels[i] = labels.pop(j)
+        filt = np.asarray(labels,dtype=int) == pop_labels[i]
+        candidates = data.pop([np.asarray(labels,dtype=int) == pop_labels[i]])
+        matched['r'+str(i)] = candidates[randint(0,candidates.shape[0])]
+    
+    for i in range(0,n):
+        j = randint(0,data.shape[0])
+
+
 
 #-----------------------------------------------------------------------------
 
-subject_id = 1007
+subject_id = 1004
 ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
 folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
 
 data, labels = load_subject(subject_id,ids_file,'tremor',folder)
-valid_data, valid_labels = threshold_data(data,labels,100)
 
-X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
+X_train, X_test, y_train, y_test = get_batch(data, labels)
