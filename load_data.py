@@ -39,7 +39,7 @@ def load_subject(subject_id,ids_file,label_type,folder):
     measurements_labels = list()
     for measurement_id in ids_file[ids_file['subject_id'] == subject_id].values[:,0]:
         subject_measurements.append(load_measurement(measurement_id,folder))
-        measurements_labels.append(ids_file[label_type][ids_file['measurement_id'] == measurement_id].values)
+        measurements_labels.append(ids_file[label_type][ids_file['measurement_id'] == measurement_id].values.astype(int))
     measurements_labels = np.stack(measurements_labels)
     return subject_measurements, measurements_labels
 
@@ -51,40 +51,65 @@ def threshold_data(data,labels,threshold=100):
         if (data[i].shape[0] >= threshold):
             valid_data.append(data[i][:threshold,:])
             valid_labels.append(labels[i])
-    valid_data = np.stack(valid_data)
-    valid_labels = np.stack(valid_labels)
     return valid_data, valid_labels
 
 def get_batch(data, labels):
     valid_data, valid_labels = threshold_data(data,labels)
     X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
-        
-    return X_train, X_test, y_train, y_test
+    X_train_m, X_train_u = get_pairs(X_train,y_train)
+   
+    return X_train_m, X_train_u, X_train, y_train, X_test, y_test
 
 def get_pairs(data,labels):
+    id_labels = [0,1,2,3,4]
     matched = dict()
     unmatched = dict()
-    pop_labels = dict()
-    n = int(data.shape[0]/2)
+    m_labels = dict()
+    u_labels = dict()
+    cat_data = dict()
+    n = int(len(data)/4)
     for i in range(0,n):
-        j = randint(0,data.shape[0])
-        matched['l'+str(i)] = data.pop(j)
-        pop_labels[i] = labels.pop(j)
-        filt = np.asarray(labels,dtype=int) == pop_labels[i]
-        candidates = data.pop([np.asarray(labels,dtype=int) == pop_labels[i]])
-        matched['r'+str(i)] = candidates[randint(0,candidates.shape[0])]
-    
+        j = randint(0,len(data))
+        matched[i] = data.pop(j)
+        m_labels[i] = labels.pop(j)
+        j = randint(0,len(data))
+        unmatched[i] = data.pop(j)
+        u_labels[i] = labels.pop(j)
+    for i in range(0,5):
+        cat_data[i] = list(compress(data,np.asarray(labels) == i))
     for i in range(0,n):
-        j = randint(0,data.shape[0])
-
+        j = m_labels[i][0]
+        if len(cat_data[j])>0:
+            m = cat_data[j].pop(0)
+            matched[i] = np.stack((matched[i],m), axis=0)
+        else:
+            matched.pop(i)
+    for i in range(0,n):
+        c_labels = list(compress(id_labels,np.asarray(id_labels) != u_labels[i][0]))
+        if len(cat_data[c_labels[0]])>0:
+            u = cat_data[c_labels[0]].pop(0)
+            unmatched[i] = np.stack((unmatched[i],u), axis=0)
+        elif len(cat_data[c_labels[1]])>0:
+            u = cat_data[c_labels[1]].pop(0)
+            unmatched[i] = np.stack((unmatched[i],u), axis=0)
+        elif len(cat_data[c_labels[2]])>0:
+            u = cat_data[c_labels[2]].pop(0)
+            unmatched[i] = np.stack((unmatched[i],u), axis=0)
+        elif len(cat_data[c_labels[3]])>0:
+            u = cat_data[c_labels[3]].pop(0)
+            unmatched[i] = np.stack((unmatched[i],u), axis=0)
+        else:
+            unmatched.pop(i)
+            
+    return matched, unmatched
 
 
 #-----------------------------------------------------------------------------
 
-subject_id = 1004
+subject_id = 1007
 ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
 folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
 
 data, labels = load_subject(subject_id,ids_file,'tremor',folder)
 
-X_train, X_test, y_train, y_test = get_batch(data, labels)
+X_train_m, X_train_u, X_train, y_train, X_test, y_test = get_batch(data,labels)
