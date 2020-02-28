@@ -42,7 +42,7 @@ def get_pairs(data,labels):
     for i in range(0,5):
         cat_data[i] = list(compress(data,np.asarray(labels) == i))
     
-    l_m_pop = np.ones(len(l_unmatched))
+    l_m_pop = np.ones(len(l_matched))
     for i in range(0,len(l_matched)):
         j = m_labels[i][0]
         if len(cat_data[j])>0:
