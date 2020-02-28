@@ -44,22 +44,15 @@ def get_pairs(data,labels):
     for i in range(0,5):
         cat_data[i] = list(compress(data,np.asarray(labels) == i))
     
+    l_m_pop = np.ones(len(l_unmatched))
     for i in range(0,len(l_matched)):
         j = m_labels[i][0]
         if len(cat_data[j])>0:
             m = cat_data[j].pop(0)
             r_matched.append(m)
         else:
-            l_m_pop[i]             
-    
-    l_matched = list(compress(l_matched,l_m_pop))
-    #for i in l_m_pop:
-        #l_matched.pop(i)
-        # try:
-        #     l_matched.pop(i)
-        # except:
-        #     print('Tried to pop out item '+str(i)+' from list of lenght '+str(len(l_matched)))
-        
+            l_m_pop[i] = 0  
+    l_matched = list(compress(l_matched,l_m_pop.astype(bool)))        
     
     l_u_pop = np.ones(len(l_unmatched))
     for i in range(0,len(l_unmatched)):
@@ -78,13 +71,7 @@ def get_pairs(data,labels):
             r_unmatched.append(u)
         else:
             l_u_pop[i] = 0
-            
-    # for i in l_u_pop:
-    #     l_unmatched.pop(i)
-        # try:
-        #     l_unmatched.pop(i)
-        # except:
-        #     print('Tried to pop out item '+str(i)+' from list of lenght '+str(len(l_matched)))
+    l_unmatched = list(compress(l_unmatched,l_u_pop.astype(bool)))
     
     targets = np.hstack((np.ones(len(l_matched)),np.zeros(len(l_unmatched))))
     l_matched = np.stack(l_matched)
