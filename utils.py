@@ -50,18 +50,18 @@ def get_pairs(data,labels):
             m = cat_data[j].pop(0)
             r_matched.append(m)
         else:
-            l_m_pop.append(i)            
+            l_m_pop[i]             
     
-    l_matched = list(compress(l_matched,np.asarray(l_matched)))
-    for i in l_m_pop:
-        l_matched.pop(i)
+    l_matched = list(compress(l_matched,l_m_pop))
+    #for i in l_m_pop:
+        #l_matched.pop(i)
         # try:
         #     l_matched.pop(i)
         # except:
         #     print('Tried to pop out item '+str(i)+' from list of lenght '+str(len(l_matched)))
         
     
-    
+    l_u_pop = np.ones(len(l_unmatched))
     for i in range(0,len(l_unmatched)):
         c_labels = list(compress(id_labels,np.asarray(id_labels) != u_labels[i][0]))
         if len(cat_data[c_labels[0]])>0:
@@ -77,7 +77,7 @@ def get_pairs(data,labels):
             u = cat_data[c_labels[3]].pop(0)
             r_unmatched.append(u)
         else:
-            l_u_pop.append(i)
+            l_u_pop[i] = 0
             
     # for i in l_u_pop:
     #     l_unmatched.pop(i)
