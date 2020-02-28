@@ -29,8 +29,6 @@ def get_pairs(data,labels):
     m_labels = list()
     u_labels = list()
     cat_data = dict()
-    l_m_pop = list()
-    l_u_pop = list()
     n = int(len(data)/4)
     
     for i in range(0,n):
