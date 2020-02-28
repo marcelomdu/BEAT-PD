@@ -113,10 +113,7 @@ def get_pairs_alt(data,labels):
     m_labels = list()
     u_labels = list()
     cat_data = dict()
-    l_m_pop = list()
-    l_u_pop = list()
     n = int(len(data)/4)
-    
     for i in range(0,n):
         j = randint(0,len(data))
         l_matched.append(data.pop(j))
@@ -124,22 +121,15 @@ def get_pairs_alt(data,labels):
         j = randint(0,len(data))
         l_unmatched.append(data.pop(j))
         u_labels.append(labels.pop(j))
-    
     for i in range(0,5):
         cat_data[i] = list(compress(data,np.asarray(labels) == i))
-    
     for i in range(0,n):
         j = m_labels[i][0]
         if len(cat_data[j])>0:
             m = cat_data[j].pop(0)
             r_matched.append(m)
         else:
-            l_m_pop.append(i)            
-    
-    for i in l_m_pop:
-        l_matched.pop(i)
-    
-    
+            l_matched.pop(i)
     for i in range(0,n):
         c_labels = list(compress(id_labels,np.asarray(id_labels) != u_labels[i][0]))
         if len(cat_data[c_labels[0]])>0:
@@ -155,18 +145,15 @@ def get_pairs_alt(data,labels):
             u = cat_data[c_labels[3]].pop(0)
             r_unmatched.append(u)
         else:
-            l_u_pop.append(i)
-            
-    for i in l_u_pop:
-        l_unmatched.pop(i)
+            l_unmatched.pop(i)
     
     targets = np.hstack((np.ones(len(l_matched)),np.zeros(len(l_unmatched))))
     l_matched = np.stack(l_matched)
     l_unmatched = np.stack(l_unmatched)
-    l_pairs = np.vstack((l_matched,l_unmatched))
+    l_pairs = np.stack((l_matched,l_unmatched))
     r_matched = np.stack(r_matched)
     r_unmatched = np.stack(r_unmatched)
-    r_pairs = np.vstack((r_matched,r_unmatched))
+    r_pairs = np.stack((r_matched,r_unmatched))
     pairs = [l_pairs,r_pairs]
     
     return pairs, targets
@@ -179,9 +166,70 @@ folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_d
 
 data, labels = load_subject(subject_id,ids_file,'tremor',folder)
 
-#X_train_m, X_train_u, X_train, y_train, X_test, y_test = get_batch(data,labels)
-
 valid_data, valid_labels = threshold_data(data,labels)
-X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
-X_train_m, X_train_u = get_pairs(X_train,y_train)
-X_train_m, X_train_u = get_pairs_alt(X_train,y_train)
+data, X_test, labels, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
+
+
+id_labels = [0,1,2,3,4]
+l_matched = list()
+r_matched = list()
+l_unmatched = list()
+r_unmatched = list()
+m_labels = list()
+u_labels = list()
+cat_data = dict()
+l_m_pop = list()
+l_u_pop = list()
+n = int(len(data)/4)
+
+for i in range(0,n):
+    j = randint(0,len(data))
+    l_matched.append(data.pop(j))
+    m_labels.append(labels.pop(j))
+    j = randint(0,len(data))
+    l_unmatched.append(data.pop(j))
+    u_labels.append(labels.pop(j))
+
+for i in range(0,5):
+    cat_data[i] = list(compress(data,np.asarray(labels) == i))
+
+for i in range(0,n):
+    j = m_labels[i][0]
+    if len(cat_data[j])>0:
+        m = cat_data[j].pop(0)
+        r_matched.append(m)
+    else:
+        l_m_pop.append(i)            
+
+for i in l_m_pop:
+    l_matched.pop(i)
+
+
+for i in range(0,n):
+    c_labels = list(compress(id_labels,np.asarray(id_labels) != u_labels[i][0]))
+    if len(cat_data[c_labels[0]])>0:
+        u = cat_data[c_labels[0]].pop(0)
+        r_unmatched.append(u)
+    elif len(cat_data[c_labels[1]])>0:
+        u = cat_data[c_labels[1]].pop(0)
+        r_unmatched.append(u)
+    elif len(cat_data[c_labels[2]])>0:
+        u = cat_data[c_labels[2]].pop(0)
+        r_unmatched.append(u)
+    elif len(cat_data[c_labels[3]])>0:
+        u = cat_data[c_labels[3]].pop(0)
+        r_unmatched.append(u)
+    else:
+        l_u_pop.append(i)
+        
+for i in l_u_pop:
+    l_unmatched.pop(i)
+
+targets = np.hstack((np.ones(len(l_matched)),np.zeros(len(l_unmatched))))
+l_matched = np.stack(l_matched)
+l_unmatched = np.stack(l_unmatched)
+l_pairs = np.vstack((l_matched,l_unmatched))
+r_matched = np.stack(r_matched)
+r_unmatched = np.stack(r_unmatched)
+r_pairs = np.vstack((r_matched,r_unmatched))
+pairs = [l_pairs,r_pairs]
