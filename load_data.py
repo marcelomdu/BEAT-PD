@@ -104,9 +104,63 @@ def get_pairs(data,labels):
     return matched, unmatched
 
 
+def get_pairs_alt(X,y):
+    id_y = [0,1,2,3,4]
+    l_matched = list()
+    r_matched = list()
+    l_unmatched = list()
+    r_unmatched = list()
+    m_y = list()
+    u_y = list()
+    cat_X = dict()
+    n = int(len(X)/4)
+    for i in range(0,n):
+        j = randint(0,len(X))
+        l_matched.append(X.pop(j))
+        m_y.append(y.pop(j))
+        j = randint(0,len(X))
+        l_unmatched.append(X.pop(j))
+        u_y.append(y.pop(j))
+    for i in range(0,5):
+        cat_X[i] = list(compress(X,np.asarray(y) == i))
+    for i in range(0,n):
+        j = m_y[i][0]
+        if len(cat_X[j])>0:
+            m = cat_X[j].pop(0)
+            r_matched.append(m)
+        else:
+            l_matched.pop(i)
+    for i in range(0,n):
+        c_y = list(compress(id_y,np.asarray(id_y) != u_y[i][0]))
+        if len(cat_X[c_y[0]])>0:
+            u = cat_X[c_y[0]].pop(0)
+            r_unmatched.append(u)
+        elif len(cat_X[c_y[1]])>0:
+            u = cat_X[c_y[1]].pop(0)
+            r_unmatched.append(u)
+        elif len(cat_X[c_y[2]])>0:
+            u = cat_X[c_y[2]].pop(0)
+            r_unmatched.append(u)
+        elif len(cat_X[c_y[3]])>0:
+            u = cat_X[c_y[3]].pop(0)
+            r_unmatched.append(u)
+        else:
+            l_unmatched.pop(i)
+    
+    targets = np.hstack((np.ones(len(l_matched)),np.zeros(len(l_unmatched))))
+    l_matched = np.stack(l_matched)
+    l_unmatched = np.stack(l_unmatched)
+    l_pairs = np.stack((l_matched,l_unmatched))
+    r_matched = np.stack(r_matched)
+    r_unmatched = np.stack(r_unmatched)
+    r_pairs = np.stack((r_matched,r_unmatched))
+    pairs = [l_pairs,r_pairs]
+    
+    return pairs, targets
+
 #-----------------------------------------------------------------------------
 
-subject_id = 1007
+subject_id = 1004
 ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
 folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
 
