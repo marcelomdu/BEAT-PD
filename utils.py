@@ -16,6 +16,8 @@ def threshold_data(data,labels,threshold=100):
 def get_batch(data, labels):
     valid_data, valid_labels = threshold_data(data,labels)
     X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
+    X_test = np.stack(X_test)
+    y_test = np.stack(y_test)
     pairs, targets = get_pairs(X_train,y_train)
    
     return pairs, targets, X_train, y_train, X_test, y_test
@@ -88,16 +90,21 @@ def make_oneshot_task(val_data,val_labels,N):
     """Create pairs of test image, support set for testing N way one-shot learning. """
     _, w, h = val_data.shape
     
-    test_label = randint(0,5)
+    test_label = randint(0,4)
     
     # Matched and unmatched candidates
-    m_candidates = val_data[val_labels==test_label,:,:]
-    u_candidates = val_data[val_labels!=test_label,:,:]
+    i_m = (np.asarray(val_labels)==test_label)[:,0]
+    i_u = (np.asarray(val_labels)!=test_label)[:,0]
+    m_candidates = val_data[i_m,:,:]
+    u_candidates = val_data[i_u,:,:]
     
     # Random indices for sampling
-    m_idx1, m_idx2 = choice(m_candidates.shape[0]+1,replace=False,size=(2,)) # Non repetitive random indices
-    u_indices = randint(0,u_candidates.shape[0]+1,size=(N,))
-    
+    try:
+        m_idx1, m_idx2 = choice(m_candidates.shape[0],replace=False,size=(2,)) # Non repetitive random indices
+        u_indices = randint(0,u_candidates.shape[0],size=(N,))
+    except:
+        print('Not enough validation candidates')
+
     # Matched image from support_set will be allocated to position '0' then shuffled
     test_image = np.asarray([m_candidates[m_idx1,:,:]]*N).reshape(N, w, h, 1)
     support_set = u_candidates[u_indices,:,:]
@@ -118,10 +125,13 @@ def test_oneshot(model,val_data,val_labels,N,k, verbose = 0):
     if verbose:
         print("Evaluating model on {} random {} way one-shot learning tasks ... \n".format(k,N))
     for _ in range(k):
+        # try:
         inputs, targets = make_oneshot_task(val_data,val_labels,N)
         probs = model.predict(inputs)
         if np.argmax(probs) == np.argmax(targets):
             n_correct+=1
+        # except:
+        #     print('Not enough validation candidates')
     percent_correct = (100.0 * n_correct / k)
     if verbose:
         print("Got an average of {}% {} way one-shot learning accuracy \n".format(percent_correct,N))
