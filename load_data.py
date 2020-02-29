@@ -26,6 +26,7 @@ def load_measurement(x,folder):
     window = 'hann'
     for i in range(0,subj.values.shape[0],samples):
         _, ps = signal.welch(subj['mag_diff'].values[i:i+samples-1], fs=50,window=window)
+        #ps = ps[29:]
         ps = ps/np.max(ps)
         psd.append(ps)
     psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,129) # 129 is (nperseg)/2 used for signal.welch function
