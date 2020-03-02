@@ -1,4 +1,6 @@
 import numpy as np
+import h5py
+import contextlib
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from numpy.random import randint, choice
@@ -136,3 +138,14 @@ def test_oneshot(model,val_data,val_labels,N,k, verbose = 0):
     if verbose:
         print("Got an average of {}% {} way one-shot learning accuracy \n".format(percent_correct,N))
     return percent_correct
+
+
+def hdf5_handler(filename, mode="r"):
+    h5py.File(filename, "a").close()
+    propfaid = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
+    settings = list(propfaid.get_cache())
+    settings[1] = 0
+    settings[2] = 0
+    propfaid.set_cache(*settings)
+    with contextlib.closing(h5py.h5f.open(filename.encode(), fapl=propfaid)) as fid:
+        return h5py.File(fid, mode)

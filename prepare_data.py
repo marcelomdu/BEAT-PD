@@ -1,10 +1,8 @@
 import pandas as pd
 import numpy as np
-import pickle
-import os
 from scipy import signal
 from numba import njit
-from numpy.random import randint
+from utils import hdf5_handler
 
 
 @njit
@@ -49,20 +47,13 @@ def load_subject(subject_id,ids_file,folder):
         measurements_labels_medication.append(ids_file['on_off'][ids_file['measurement_id'] == measurement_id].values.astype(int))
         measurements_labels_dyskinesia.append(ids_file['dyskinesia'][ids_file['measurement_id'] == measurement_id].values.astype(int))
         measurements_labels_tremor.append(ids_file['tremor'][ids_file['measurement_id'] == measurement_id].values.astype(int))
-    measurements_labels['medication'] = np.stack(measurements_labels_medication)
-    measurements_labels['dyskinesia'] = np.stack(measurements_labels_dyskinesia)
-    measurements_labels['tremor'] = np.stack(measurements_labels_tremor)
+    measurements_labels_medication = np.stack(measurements_labels_medication)
+    measurements_labels_dyskinesia = np.stack(measurements_labels_dyskinesia)
+    measurements_labels_tremor = np.stack(measurements_labels_tremor)
+    measurements_labels = np.hstack((measurements_labels_medication,measurements_labels_dyskinesia))
+    measurements_labels = np.hstack((measurements_labels,measurements_labels_tremor))
     
     return subject_measurements, measurements_labels
-
-
-def load_subjects(subjects_ids,ids_file,folder):
-    data = dict()
-    for subject_id in subjects_ids:
-        data[subject_id] = load_subject(subject_id,ids_file,folder)
-    
-    return data
-
 
 #-----------------------------------------------------------------------------
     
@@ -71,13 +62,16 @@ if __name__ == '__main__':
     subjects_ids = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
+    f = hdf5_handler(folder+'data.hdf5','a')
 
-    data = dict()
     for subject_id in subjects_ids:
         print('Loading subject '+str(subject_id))
-        data[subject_id] = load_subject(subject_id,ids_file,folder)
+        subj = f.create_group(str(subject_id))
+        measurements = subj.create_group('measurements')
+        data = load_subject(subject_id,ids_file,folder)
+        for i in range(0,len(data[0])):
+            measurements.create_dataset(str(i), data=data[0][i])
+        subj.create_dataset('labels', data=data[1])        
 
-    with open(os.path.join(folder,"training_data.pickle"), "wb") as f:
-        pickle.dump(data,f)
     
     print('Prepare data done!')
