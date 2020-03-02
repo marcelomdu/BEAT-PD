@@ -139,6 +139,17 @@ def test_oneshot(model,val_data,val_labels,N,k, verbose = 0):
         print("Got an average of {}% {} way one-shot learning accuracy \n".format(percent_correct,N))
     return percent_correct
 
+def test_model(model,val_data,val_labels):
+
+    n = len(val_data)
+    for i in range(0,n):
+        for j in range(0,n):
+            if (j!=i):
+                inputs = (val_data[i],val_data[j])
+                prob = model.predict(inputs)
+                
+
+
 
 def hdf5_handler(filename, mode="r"):
     h5py.File(filename, "a").close()

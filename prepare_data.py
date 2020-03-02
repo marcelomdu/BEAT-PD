@@ -62,7 +62,7 @@ if __name__ == '__main__':
     subjects_ids = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    f = hdf5_handler(folder+'data.hdf5','a')
+    f = hdf5_handler(folder+'training_data.hdf5','a')
 
     for subject_id in subjects_ids:
         print('Loading subject '+str(subject_id))
