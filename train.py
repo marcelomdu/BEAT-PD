@@ -5,13 +5,15 @@ from tensorflow.keras.optimizers import Adam
 
 import os
 import time
+import pickle
 
 
 subject_id = 1007
 ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
-folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
+file = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/training_data.pickle"
 
-data, labels = load_subject(subject_id,ids_file,'tremor',folder)
+with open(file,'rb') as f:
+    data = pickle.load(f)
 
 #pairs, targets, X_train, y_train, X_test, y_test = get_batch(data, labels)
 
