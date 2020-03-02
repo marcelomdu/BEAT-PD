@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from numpy.random import randint, choice
 from itertools import compress
 
+
 def threshold_data(data,labels,threshold=100):
     valid_data = list()
     valid_labels = list()
@@ -15,6 +16,7 @@ def threshold_data(data,labels,threshold=100):
             valid_labels.append(labels[i])
     return valid_data, valid_labels
 
+
 def get_batch(data, labels):
     valid_data, valid_labels = threshold_data(data,labels)
     X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
@@ -23,6 +25,7 @@ def get_batch(data, labels):
     pairs, targets = get_pairs(X_train,y_train)
    
     return pairs, targets, X_train, y_train, X_test, y_test
+
 
 def get_pairs(data,labels):
     id_labels = [0,1,2,3,4]
@@ -88,6 +91,7 @@ def get_pairs(data,labels):
     
     return pairs, targets
 
+
 def make_oneshot_task(val_data,val_labels,N):
     """Create pairs of test image, support set for testing N way one-shot learning. """
     _, w, h = val_data.shape
@@ -139,18 +143,25 @@ def test_oneshot(model,val_data,val_labels,N,k, verbose = 0):
         print("Got an average of {}% {} way one-shot learning accuracy \n".format(percent_correct,N))
     return percent_correct
 
+
 def test_model(model,val_data,val_labels):
-
-    n = len(val_data)
+    # For each 
+    n = val_data.shape[0]
+    n_correct = 0
+    k = 0
     for i in range(0,n):
-        for j in range(0,n):
-            if (j!=i):
-                inputs = (val_data[i],val_data[j])
-                prob = model.predict(inputs)
-                
-
-
-
+        for j in range(1+k,n):
+            truth = val_labels[i]==val_labels[j]
+            inputs = (val_data[i,:,:],val_data[j,:,:])
+            pred = model.predict(inputs)
+            if (truth==pred):
+                n_correct += 1
+            k += 1
+    accuracy = (n_correct/((pow(n,2)-n)/2))*100
+    
+    return accuracy
+    
+    
 def hdf5_handler(filename, mode="r"):
     h5py.File(filename, "a").close()
     propfaid = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
