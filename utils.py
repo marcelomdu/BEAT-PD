@@ -176,10 +176,10 @@ def test_model_2(model, train_data, val_data, train_labels, val_labels):
     train_data_list = list()
     
     for i in range(0,5):
-        train_data_list.append(compress(train_data,np.asarray(train_labels)==i))
+        train_data_list.append(list(compress(train_data,np.asarray(train_labels)==i)))
         n_labels.append(len(train_data_list[i]))
         if n_labels[i]>0:
-            train_data_list[i] = np.stack(train_data_list[0])
+            train_data_list[i] = np.stack(train_data_list[i])
             train_data_list[i] = train_data_list[i].reshape(train_data_list[i].shape[0],train_data_list[i].shape[1],train_data_list[i].shape[2],1)
 
     val_data = np.stack(val_data)
@@ -191,7 +191,7 @@ def test_model_2(model, train_data, val_data, train_labels, val_labels):
         for j in range(0,len(n_labels)):
             if n_labels[j]>0:
                 inputs = [(np.asarray([val_data[i,:,:]]*n_labels[j]).reshape(n_labels[j],val_data.shape[1],val_data.shape[2],1)),train_data_list[j]]
-                pred = np.sum(np.around(model.predict(inputs)))/n_labels
+                pred = np.sum(np.around(model.predict(inputs)))/n_labels[j]
             else:
                 pred = -1
             preds.append(pred)
