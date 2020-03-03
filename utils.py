@@ -187,32 +187,17 @@ def test_model_2(model, train_data, val_data, train_labels, val_labels):
     n_correct = 0
 
     for i in range(0,val_data.shape[0]):
-        val_data_0 = ((np.asarray([val_data[i,:,:]]*train_data_0.shape[0]).reshape(train_data_0.shape[0],val_data.shape[1],val_data.shape[2],1)))
-        val_data_0 = [val_data_0,train_data_0]
-        val_data_1 = ((np.asarray([val_data[i,:,:]]*train_data_1.shape[0]).reshape(train_data_1.shape[0],val_data.shape[1],val_data.shape[2],1)))
-        val_data_1 = [val_data_1,train_data_1]
-        val_data_2 = ((np.asarray([val_data[i,:,:]]*train_data_2.shape[0]).reshape(train_data_2.shape[0],val_data.shape[1],val_data.shape[2],1)))
-        val_data_2 = [val_data_2,train_data_2]
-        val_data_3 = ((np.asarray([val_data[i,:,:]]*train_data_3.shape[0]).reshape(train_data_3.shape[0],val_data.shape[1],val_data.shape[2],1)))
-        val_data_3 = [val_data_3,train_data_3]
-        val_data_4 = ((np.asarray([val_data[i,:,:]]*train_data_4.shape[0]).reshape(train_data_4.shape[0],val_data.shape[1],val_data.shape[2],1)))
-        val_data_4 = [val_data_4,train_data_4]
-
-        inputs = [val_data_0,val_data_1,val_data_2,val_data_3,val_data_4]
-
         preds = list()
-        
-        for j in range(0,len(inputs)):
-            pred = np.sum(np.around(model.predict(inputs[j])))
-            if (n_labels[j] > 0):
-                preds.append(pred/n_labels[j])
+        for j in range(0,len(n_labels)):
+            if n_labels[j]>0:
+                inputs = [(np.asarray([val_data[i,:,:]]*n_labels[j]).reshape(n_labels[j],val_data.shape[1],val_data.shape[2],1)),train_data_list[j]]
+                pred = np.sum(np.around(model.predict(inputs)))/n_labels
             else:
-                preds.append(-1)
-
+                pred = -1
+            preds.append(pred)
         if np.argmax(np.stack(preds))==val_labels[i]:
             n_correct += 1
 
-    
     accuracy = n_correct/len(val_labels)
 
     return accuracy
