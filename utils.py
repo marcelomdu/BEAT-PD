@@ -171,20 +171,17 @@ def test_model(model,val_data,val_labels):
     
 
 def test_model_2(model, train_data, val_data, train_labels, val_labels):
-
-    train_data_0 = np.stack(list(compress(train_data,np.asarray(train_labels)==0)))
-    train_data_0 = train_data_0.reshape(train_data_0.shape[0],train_data_0.shape[1],train_data_0.shape[2],1)
-    train_data_1 = np.stack(list(compress(train_data,np.asarray(train_labels)==1)))
-    train_data_1 = train_data_1.reshape(train_data_1.shape[0],train_data_1.shape[1],train_data_1.shape[2],1)
-    train_data_2 = np.stack(list(compress(train_data,np.asarray(train_labels)==2)))
-    train_data_2 = train_data_2.reshape(train_data_2.shape[0],train_data_2.shape[1],train_data_2.shape[2],1)
-    train_data_3 = np.stack(list(compress(train_data,np.asarray(train_labels)==3)))
-    train_data_3 = train_data_3.reshape(train_data_3.shape[0],train_data_3.shape[1],train_data_3.shape[2],1)
-    train_data_4 = np.stack(list(compress(train_data,np.asarray(train_labels)==4)))
-    train_data_4 = train_data_4.reshape(train_data_4.shape[0],train_data_4.shape[1],train_data_4.shape[2],1)
-
-    n_labels = [train_data_0.shape[0],train_data_1.shape[0],train_data_2.shape[0],train_data_3.shape[0],train_data_4.shape[0]]
     
+    n_labels = list()
+    train_data_list = list()
+    
+    for i in range(0,5):
+        train_data_list.append(compress(train_data,np.asarray(train_labels)==i))
+        n_labels.append(len(train_data_list[i]))
+        if n_labels[i]>0:
+            train_data_list[i] = np.stack(train_data_list[0])
+            train_data_list[i] = train_data_list[i].reshape(train_data_list[i].shape[0],train_data_list[i].shape[1],train_data_list[i].shape[2],1)
+
     val_data = np.stack(val_data)
 
     n_correct = 0
