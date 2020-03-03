@@ -173,39 +173,52 @@ def test_model(model,val_data,val_labels):
 def test_model_2(model, train_data, val_data, train_labels, val_labels):
 
     train_data_0 = np.stack(list(compress(train_data,np.asarray(train_labels)==0)))
+    train_data_0 = train_data_0.reshape(train_data_0.shape[0],train_data_0.shape[1],train_data_0.shape[2],1)
     train_data_1 = np.stack(list(compress(train_data,np.asarray(train_labels)==1)))
+    train_data_1 = train_data_1.reshape(train_data_1.shape[0],train_data_1.shape[1],train_data_1.shape[2],1)
     train_data_2 = np.stack(list(compress(train_data,np.asarray(train_labels)==2)))
+    train_data_2 = train_data_2.reshape(train_data_2.shape[0],train_data_2.shape[1],train_data_2.shape[2],1)
     train_data_3 = np.stack(list(compress(train_data,np.asarray(train_labels)==3)))
+    train_data_3 = train_data_3.reshape(train_data_3.shape[0],train_data_3.shape[1],train_data_3.shape[2],1)
     train_data_4 = np.stack(list(compress(train_data,np.asarray(train_labels)==4)))
+    train_data_4 = train_data_4.reshape(train_data_4.shape[0],train_data_4.shape[1],train_data_4.shape[2],1)
+
+    n_labels = [train_data_0.shape[0],train_data_1.shape[0],train_data_2.shape[0],train_data_3.shape[0],train_data_4.shape[0]]
     
     val_data = np.stack(val_data)
 
-    for i in range(0,val_data.shape[0]):
-        val_data_0 = ((np.asarray([val_data[0,:,:]]*train_data_0.shape[0]).reshape(train_data_0.shape[0],val_data.shape[1],val_data.shape[2])))
-        val_data_0 = [val_data_0,train_data_0]
-
-    val_data = val_data.reshape(val_data.shape[0],1,val_data.shape[1],val_data.shape[2],1)
-    n = val_labels.shape[0]
     n_correct = 0
-    k = 0
-    for i in range(0,n):
-        k = 0
-        for j in range(1+k,n):
-            truth = int(val_labels[i]==val_labels[j])
-            inputs = (val_data[i,:,:,:,:],val_data[j,:,:,:,:])
-            pred = int(np.around(model.predict(inputs)))
-            if (truth==pred):
-                n_correct += 1
-            k += 1
-    accuracy = (n_correct/((pow(n,2)-n)/2))*100
-    tps = list()
-    tps.append(np.sum((val_labels==0).astype(int)))
-    tps.append(np.sum((val_labels==1).astype(int)))
-    tps.append(np.sum((val_labels==2).astype(int)))
-    tps.append(np.sum((val_labels==3).astype(int)))
-    tps.append(np.sum((val_labels==4).astype(int)))
 
-    return accuracy, n, tps
+    for i in range(0,val_data.shape[0]):
+        val_data_0 = ((np.asarray([val_data[i,:,:]]*train_data_0.shape[0]).reshape(train_data_0.shape[0],val_data.shape[1],val_data.shape[2],1)))
+        val_data_0 = [val_data_0,train_data_0]
+        val_data_1 = ((np.asarray([val_data[i,:,:]]*train_data_1.shape[0]).reshape(train_data_1.shape[0],val_data.shape[1],val_data.shape[2],1)))
+        val_data_1 = [val_data_1,train_data_1]
+        val_data_2 = ((np.asarray([val_data[i,:,:]]*train_data_2.shape[0]).reshape(train_data_2.shape[0],val_data.shape[1],val_data.shape[2],1)))
+        val_data_2 = [val_data_2,train_data_2]
+        val_data_3 = ((np.asarray([val_data[i,:,:]]*train_data_3.shape[0]).reshape(train_data_3.shape[0],val_data.shape[1],val_data.shape[2],1)))
+        val_data_3 = [val_data_3,train_data_3]
+        val_data_4 = ((np.asarray([val_data[i,:,:]]*train_data_4.shape[0]).reshape(train_data_4.shape[0],val_data.shape[1],val_data.shape[2],1)))
+        val_data_4 = [val_data_4,train_data_4]
+
+        inputs = [val_data_0,val_data_1,val_data_2,val_data_3,val_data_4]
+
+        preds = list()
+        
+        for j in range(0,len(inputs)):
+            pred = np.sum(np.around(model.predict(inputs[j])))
+            if (n_labels[j] > 0):
+                preds.append(pred/n_labels[j])
+            else:
+                preds.append(-1)
+
+        if np.argmax(np.stack(preds))==val_labels[i]:
+            n_correct += 1
+
+    
+    accuracy = n_correct/len(val_labels)
+
+    return accuracy
     
     
 def hdf5_handler(filename, mode="r"):
