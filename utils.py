@@ -191,7 +191,7 @@ def test_model_2(model, train_data, val_data, train_labels, val_labels):
         for j in range(0,len(n_labels)):
             if n_labels[j]>0:
                 inputs = [(np.asarray([val_data[i,:,:]]*n_labels[j]).reshape(n_labels[j],val_data.shape[1],val_data.shape[2],1)),train_data_list[j]]
-                pred = np.sum(np.around(model.predict(inputs)))/n_labels[j]
+                pred = np.sum(model.predict(inputs))/n_labels[j]
             else:
                 pred = -1
             preds.append(pred)
