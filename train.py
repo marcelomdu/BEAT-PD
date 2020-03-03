@@ -1,4 +1,4 @@
-from utils import get_batch, test_model
+from utils import get_batch, test_model, test_model_2
 from model import get_siamese_model
 from tensorflow.keras.optimizers import Adam
 from utils import hdf5_handler
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     #pairs, targets, X_train, y_train, X_test, y_test = get_batch(data, labels)
 
     # Hyper parameters
-    evaluate_every = 2 # interval for evaluating on one-shot tasks
+    evaluate_every = 1 # interval for evaluating on one-shot tasks
     #batch_size = 32
     n_iter = 4 # No. of training iterations
     #N_way = 3 # how many classes for testing one-shot tasks
@@ -44,14 +44,14 @@ if __name__ == '__main__':
         labels = f[str(subject_id)]['labels'][:][:,2]
         t_start = time.time()
         for i in range(1, n_iter+1):
-            inputs, targets, X_test, y_test = get_batch(data, labels)
+            inputs, targets, X_train, X_test, y_train, y_test = get_batch(data, labels)
             loss = model.train_on_batch(inputs, targets)
             print("Train Loss: {0}".format(loss)+" Iter: {}".format(i))
             if i % evaluate_every == 0:
                 print("\n ------------- \n")
                 print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
                 print("Train Loss: {0}".format(loss)) 
-                val_acc, n, tps = test_model(model, X_test, y_test)
+                val_acc, n, tps = test_model_2(model, X_train, X_test, y_train, y_test)
                 model.save_weights(os.path.join(model_path, 'weights.{}.h5'.format(i)))
                 print('accuracy: {0} for {1} tests'.format(val_acc,n))
                 print('zeros:{0}, ones:{1}, twos:{2}, threes:{3}, fours{4}'.format(tps[0],tps[1],tps[2],tps[3],tps[4]))
