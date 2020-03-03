@@ -92,85 +92,7 @@ def get_pairs(data,labels):
     return pairs, targets
 
 
-def make_oneshot_task(val_data,val_labels,N):
-    """Create pairs of test image, support set for testing N way one-shot learning. """
-    _, w, h = val_data.shape
-    
-    test_label = randint(0,4)
-    
-    # Matched and unmatched candidates
-    i_m = (np.asarray(val_labels)==test_label)[:,0]
-    i_u = (np.asarray(val_labels)!=test_label)[:,0]
-    m_candidates = val_data[i_m,:,:]
-    u_candidates = val_data[i_u,:,:]
-    
-    # Random indices for sampling
-    try:
-        m_idx1, m_idx2 = choice(m_candidates.shape[0],replace=False,size=(2,)) # Non repetitive random indices
-        u_indices = randint(0,u_candidates.shape[0],size=(N,))
-    except:
-        print('Not enough validation candidates')
-
-    # Matched image from support_set will be allocated to position '0' then shuffled
-    test_image = np.asarray([m_candidates[m_idx1,:,:]]*N).reshape(N, w, h, 1)
-    support_set = u_candidates[u_indices,:,:]
-    support_set[0,:,:] = m_candidates[m_idx2,:,:]
-    support_set = support_set.reshape(N, w, h, 1)
-    targets = np.zeros((N,))
-    targets[0] = 1
-    targets, test_image, support_set = shuffle(targets, test_image, support_set)
-
-    pairs = [test_image, support_set]
-
-    return pairs, targets
-
-  
-def test_oneshot(model,val_data,val_labels,N,k, verbose = 0):
-    """Test average N way oneshot learning accuracy of a siamese neural net over k one-shot tasks"""
-    n_correct = 0
-    if verbose:
-        print("Evaluating model on {} random {} way one-shot learning tasks ... \n".format(k,N))
-    for _ in range(k):
-        # try:
-        inputs, targets = make_oneshot_task(val_data,val_labels,N)
-        probs = model.predict(inputs)
-        if np.argmax(probs) == np.argmax(targets):
-            n_correct+=1
-        # except:
-        #     print('Not enough validation candidates')
-    percent_correct = (100.0 * n_correct / k)
-    if verbose:
-        print("Got an average of {}% {} way one-shot learning accuracy \n".format(percent_correct,N))
-    return percent_correct
-
-
-def test_model(model,val_data,val_labels):
-
-    val_data = val_data.reshape(val_data.shape[0],1,val_data.shape[1],val_data.shape[2],1)
-    n = val_labels.shape[0]
-    n_correct = 0
-    k = 0
-    for i in range(0,n):
-        k = 0
-        for j in range(1+k,n):
-            truth = int(val_labels[i]==val_labels[j])
-            inputs = (val_data[i,:,:,:,:],val_data[j,:,:,:,:])
-            pred = int(np.around(model.predict(inputs)))
-            if (truth==pred):
-                n_correct += 1
-            k += 1
-    accuracy = (n_correct/((pow(n,2)-n)/2))*100
-    tps = list()
-    tps.append(np.sum((val_labels==0).astype(int)))
-    tps.append(np.sum((val_labels==1).astype(int)))
-    tps.append(np.sum((val_labels==2).astype(int)))
-    tps.append(np.sum((val_labels==3).astype(int)))
-    tps.append(np.sum((val_labels==4).astype(int)))
-
-    return accuracy, n, tps
-    
-
-def test_model_2(model, train_data, val_data, train_labels, val_labels):
+def test_model(model, train_data, val_data, train_labels, val_labels):
     
     n_labels = list()
     train_data_list = list()
@@ -212,3 +134,58 @@ def hdf5_handler(filename, mode="r"):
     propfaid.set_cache(*settings)
     with contextlib.closing(h5py.h5f.open(filename.encode(), fapl=propfaid)) as fid:
         return h5py.File(fid, mode)
+    
+    
+#------------------------------------------------------------------------------------
+# Old func defs
+
+#def make_oneshot_task(val_data,val_labels,N):
+#    """Create pairs of test image, support set for testing N way one-shot learning. """
+#    _, w, h = val_data.shape
+#    
+#    test_label = randint(0,4)
+#    
+#    # Matched and unmatched candidates
+#    i_m = (np.asarray(val_labels)==test_label)[:,0]
+#    i_u = (np.asarray(val_labels)!=test_label)[:,0]
+#    m_candidates = val_data[i_m,:,:]
+#    u_candidates = val_data[i_u,:,:]
+#    
+#    # Random indices for sampling
+#    try:
+#        m_idx1, m_idx2 = choice(m_candidates.shape[0],replace=False,size=(2,)) # Non repetitive random indices
+#        u_indices = randint(0,u_candidates.shape[0],size=(N,))
+#    except:
+#        print('Not enough validation candidates')
+#
+#    # Matched image from support_set will be allocated to position '0' then shuffled
+#    test_image = np.asarray([m_candidates[m_idx1,:,:]]*N).reshape(N, w, h, 1)
+#    support_set = u_candidates[u_indices,:,:]
+#    support_set[0,:,:] = m_candidates[m_idx2,:,:]
+#    support_set = support_set.reshape(N, w, h, 1)
+#    targets = np.zeros((N,))
+#    targets[0] = 1
+#    targets, test_image, support_set = shuffle(targets, test_image, support_set)
+#
+#    pairs = [test_image, support_set]
+#
+#    return pairs, targets
+#
+#  
+#def test_oneshot(model,val_data,val_labels,N,k, verbose = 0):
+#    """Test average N way oneshot learning accuracy of a siamese neural net over k one-shot tasks"""
+#    n_correct = 0
+#    if verbose:
+#        print("Evaluating model on {} random {} way one-shot learning tasks ... \n".format(k,N))
+#    for _ in range(k):
+#        # try:
+#        inputs, targets = make_oneshot_task(val_data,val_labels,N)
+#        probs = model.predict(inputs)
+#        if np.argmax(probs) == np.argmax(targets):
+#            n_correct+=1
+#        # except:
+#        #     print('Not enough validation candidates')
+#    percent_correct = (100.0 * n_correct / k)
+#    if verbose:
+#        print("Got an average of {}% {} way one-shot learning accuracy \n".format(percent_correct,N))
+#    return percent_correct
