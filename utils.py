@@ -24,7 +24,7 @@ def get_batch(data, labels):
     y_test = np.stack(y_test)
     pairs, targets = get_pairs(X_train,y_train)
    
-    return pairs, targets, X_train, y_train, X_test, y_test
+    return pairs, targets, X_test, y_test
 
 
 def get_pairs(data,labels):
@@ -51,7 +51,7 @@ def get_pairs(data,labels):
     
     l_m_pop = np.ones(len(l_matched))
     for i in range(0,len(l_matched)):
-        j = m_labels[i][0]
+        j = m_labels[i]#[0]
         if len(cat_data[j])>0:
             m = cat_data[j].pop(0)
             r_matched.append(m)
@@ -61,7 +61,7 @@ def get_pairs(data,labels):
     
     l_u_pop = np.ones(len(l_unmatched))
     for i in range(0,len(l_unmatched)):
-        c_labels = list(compress(id_labels,np.asarray(id_labels) != u_labels[i][0]))
+        c_labels = list(compress(id_labels,np.asarray(id_labels) != u_labels[i]))#[0]))
         if len(cat_data[c_labels[0]])>0:
             u = cat_data[c_labels[0]].pop(0)
             r_unmatched.append(u)
@@ -146,20 +146,28 @@ def test_oneshot(model,val_data,val_labels,N,k, verbose = 0):
 
 def test_model(model,val_data,val_labels):
     # For each 
-    n = val_data.shape[0]
+    val_data = val_data.reshape(val_data.shape[0],1,val_data.shape[1],val_data.shape[2],1)
+    n = val_labels.shape[0]
     n_correct = 0
     k = 0
     for i in range(0,n):
+        k = 0
         for j in range(1+k,n):
-            truth = val_labels[i]==val_labels[j]
-            inputs = (val_data[i,:,:],val_data[j,:,:])
-            pred = model.predict(inputs)
+            truth = int(val_labels[i]==val_labels[j])
+            inputs = (val_data[i,:,:,:,:],val_data[j,:,:,:,:])
+            pred = int(np.around(model.predict(inputs)))
             if (truth==pred):
                 n_correct += 1
             k += 1
     accuracy = (n_correct/((pow(n,2)-n)/2))*100
-    
-    return accuracy
+    tps = list()
+    tps.append(np.sum((val_labels==0).astype(int)))
+    tps.append(np.sum((val_labels==1).astype(int)))
+    tps.append(np.sum((val_labels==2).astype(int)))
+    tps.append(np.sum((val_labels==3).astype(int)))
+    tps.append(np.sum((val_labels==4).astype(int)))
+
+    return accuracy, n, tps
     
     
 def hdf5_handler(filename, mode="r"):
