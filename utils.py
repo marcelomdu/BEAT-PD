@@ -7,7 +7,7 @@ from numpy.random import randint, choice
 from itertools import compress
 
 
-def threshold_data(data,labels,threshold=100):
+def threshold_data(data,labels,threshold):
     valid_data = list()
     valid_labels = list()
     for i in range(0,len(data)):
@@ -17,8 +17,12 @@ def threshold_data(data,labels,threshold=100):
     return valid_data, valid_labels
 
 
-def get_batch(data, labels):
-    valid_data, valid_labels = threshold_data(data,labels)
+def get_batch(data, labels,threshold=True,th_value=100):
+    if threshold:
+        valid_data, valid_labels = threshold_data(data,labels,th_value)
+    else:
+        valid_data = data
+        valid_labels = labels
     X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
     pairs, targets = get_pairs(X_train,y_train)
    
