@@ -20,8 +20,6 @@ def threshold_data(data,labels,threshold=100):
 def get_batch(data, labels):
     valid_data, valid_labels = threshold_data(data,labels)
     X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
-    # X_test = np.stack(X_test)
-    # y_test = np.stack(y_test)
     pairs, targets = get_pairs(X_train,y_train)
    
     return pairs, targets, X_train, X_test, y_train, y_test

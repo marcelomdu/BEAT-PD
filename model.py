@@ -7,17 +7,17 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Conv2D, ZeroPadding2D, Activation, Input, concatenate
 from tensorflow.keras.models import Model
 
-# from tensorflow.keras.layers.normalization import BatchNormalization
-# from tensorflow.keras.layers.pooling import  MaxPooling2D
-# from tensorflow.keras.layers.merge import  Concatenate
-# from tensorflow.keras.layers.core import Lambda, Flatten, Dense
+# from keras.layers.normalization import BatchNormalization
+# from keras.layers.pooling import  MaxPooling2D
+# from keras.layers.merge import  Concatenate
+# from keras.layers.core import Lambda, Flatten, Dense
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.layers import  MaxPooling2D
 from tensorflow.keras.layers import  Concatenate
 from tensorflow.keras.layers import Lambda, Flatten, Dense
 from tensorflow.keras.initializers import glorot_uniform
 
-# from tensorflow.keras.engine.topology import Layer
+# from keras.engine.topology import Layer
 from tensorflow.keras.layers import Layer
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras import backend as K
