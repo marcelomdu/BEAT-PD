@@ -28,23 +28,16 @@ def initialize_weights(shape, dtype=None):
 def initialize_bias(shape, dtype=None):
     return np.random.normal(loc=0.5, scale=1e-2, size=shape)
 
-def get_siamese_model(input_shape):
+def get_siamese_model(input_shape,type='2D'):
     # Input tensors
     left_input = Input(input_shape)
     right_input = Input(input_shape)
 
-    # CNN
-    model = Sequential()
-    model.add(Conv2D(64, (4,9), activation='relu', input_shape=input_shape, kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
-    model.add(MaxPooling2D())
-    model.add(Conv2D(128, (4,10), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(MaxPooling2D())
-    model.add(Conv2D(128, (5,5), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(MaxPooling2D())
-    model.add(Conv2D(256, (4,6), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Flatten())
-    model.add(Dense(4096, activation='sigmoid', kernel_regularizer=l2(1e-3), kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
-
+    if type=='2D':
+        model = CNN_2D(input_shape)
+    if type=='1D':
+        model = CNN_1D(input_shape)
+    
     # Feature vectors
     encoded_l = model(left_input)
     encoded_r = model(right_input)
@@ -60,3 +53,35 @@ def get_siamese_model(input_shape):
     siamese_net = Model(inputs=[left_input,right_input],outputs=prediction)
 
     return siamese_net
+
+
+def CNN_2D(input_shape):
+    
+    model = Sequential()
+    model.add(Conv2D(64, (4,9), activation='relu', input_shape=input_shape, kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling2D())
+    model.add(Conv2D(128, (4,10), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling2D())
+    model.add(Conv2D(128, (5,5), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling2D())
+    model.add(Conv2D(256, (4,6), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Flatten())
+    model.add(Dense(4096, activation='sigmoid', kernel_regularizer=l2(1e-3), kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
+
+    return model
+
+
+def CNN_1D(input_shape):
+    
+    model = Sequential()
+    model.add(Conv1D(64, 9, activation='relu', input_shape=input_shape, kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling1D(2))
+    model.add(Conv1D(128, 10, activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling1D(2))
+    model.add(Conv1D(128, 5, activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling1D(2))
+    model.add(Conv1D(256, 6, activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Flatten())
+    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
+
+    return model
