@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     model = get_siamese_model((100, 129, 1))
     optimizer = Adam(lr = 0.00001)
-    model.compile(loss="binary_crossentropy",optimizer=optimizer)
+    model.compile(loss="mean_squared_error",optimizer=optimizer)
 
 
     print("Start Training")
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     
     for subject_id in subjects_ids:
         acc_file = open(str(subject_id)+'_acc.txt','a')
+        acc_file.write('\n')
         m_keys = list(map(int,list((f[str(subject_id)]['measurements']).keys())))
         m_keys.sort()
         data = list()
