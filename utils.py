@@ -17,16 +17,16 @@ def threshold_data(data,labels,threshold):
     return valid_data, valid_labels
 
 
-def get_batch(data, labels,threshold=True,th_value=100):
+def get_train_test(data, labels,threshold=True,th_value=100):
     if threshold:
         valid_data, valid_labels = threshold_data(data,labels,th_value)
     else:
         valid_data = data
         valid_labels = labels
     X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
-    pairs, targets = get_pairs(X_train,y_train)
+    # pairs, targets = get_pairs(X_train,y_train)
    
-    return pairs, targets, X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test
 
 
 def get_pairs(data,labels):

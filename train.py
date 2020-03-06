@@ -1,4 +1,4 @@
-from utils import get_batch, test_model
+from utils import get_train_test, get_pairs, test_model
 from model import get_siamese_model
 from tensorflow.keras.optimizers import Adam
 from utils import hdf5_handler
@@ -45,8 +45,9 @@ if __name__ == '__main__':
             data.append(f[str(subject_id)]['measurements'][str(key)][:,:])
         labels = f[str(subject_id)]['labels'][:][:,2]
         t_start = time.time()
-        inputs, targets, X_train, X_test, y_train, y_test = get_batch(data, labels)
+        X_train, X_test, y_train, y_test = get_train_test(data, labels)
         for i in range(1, n_iter+1):
+            inputs, targets = get_pairs(X_train,y_train)
             loss = model.train_on_batch(inputs, targets)
             print("Train Loss: {0}".format(loss)+" Iter: {}".format(i))
             if i % evaluate_every == 0:
