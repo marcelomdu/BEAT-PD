@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 import contextlib
+import copy
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from numpy.random import randint, choice
@@ -29,7 +30,9 @@ def get_train_test(data, labels,threshold=True,th_value=100):
     return X_train, X_test, y_train, y_test
 
 
-def get_pairs(data,labels):
+def get_pairs(X,y):
+    data = copy.deepcopy(X)
+    labels = copy.deepcopy(y)
     id_labels = [0,1,2,3,4]
     l_matched = list()
     r_matched = list()
