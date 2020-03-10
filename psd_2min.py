@@ -14,18 +14,16 @@ def load_subj(x,folder):
     subj['Y'] = signal.sosfilt(sos, subj['Y'].values)
     subj['Z'] = signal.sosfilt(sos, subj['Z'].values)
     subj['mag_diff'] = calc_mag_diff(subj.values)
-    # subj['mag'] = subj.pow(2).sum(1).values
-    # subj['mag'] = np.sqrt(subj['mag'].values)
     psd = list()
     window = 'hann'
     for i in range(0,subj.values.shape[0],samples):
         fs, ps = signal.welch(subj['mag_diff'].values[i:i+samples-1],fs=50,window=window,detrend='linear',nperseg=1024)
-        ps = ps/np.max(ps)
+        ps = ps/np.max(ps) # Data normalization
         # ps = 1/(-np.log10(ps))
         psd.append(ps)
     subj['mag_SMA'] = subj.iloc[:,3].rolling(window=2).mean()
     n_psd = len(psd)
-    psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,int((samples/2))) # 129 is (nperseg)/2 used for signal.welch function
+    psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,int((samples/2)))
     sum_psd = np.sum(psd,axis=0)/n_psd
     return subj, psd, n_psd, sum_psd
 
