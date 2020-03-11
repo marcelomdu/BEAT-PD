@@ -14,10 +14,8 @@ if __name__ == '__main__':
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
     f = hdf5_handler(folder+'training_data.hdf5','a')
 
-    #pairs, targets, X_train, y_train, X_test, y_test = get_batch(data, labels)
-
     # Hyper parameters
-    evaluate_every = 1000 # interval for evaluating on one-shot tasks
+    evaluate_every = 1000 # interval for evaluating model
     #batch_size = 32
     n_iter = 10000 # No. of training iterations
     best = -1
