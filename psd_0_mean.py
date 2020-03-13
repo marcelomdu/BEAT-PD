@@ -5,6 +5,7 @@ from scipy import signal
 import scipy.cluster.hierarchy as sch
 from numba import njit
 from itertools import compress
+from audioop import rms
 
 
 def load_subj(x,folder):
@@ -17,13 +18,16 @@ def load_subj(x,folder):
     subj['Z'] = signal.sosfilt(sos, subj['Z'].values)
     subj['mag_diff'] = calc_mag_diff(subj.values)
     psd = list()
+    rms = list()
     window = 'hann'
     fs, mag_diff_psd = signal.welch(subj['mag_diff'].values[:],fs=50,window=window,detrend='linear',nperseg=1024)
     for i in range(0,subj.values.shape[0],samples):
         fs, ps = signal.welch(subj['mag_diff'].values[i:i+samples-1],fs=50,window=window,detrend='linear',nperseg=1024)
         ps = ps/np.max(ps) # Data normalization
+        i_rms = rms(subj['mag_diff'].values[i:i+samples-1],4)
         # ps = 1/(-np.log10(ps))
         psd.append(ps)
+        
     subj['mag_SMA'] = subj.iloc[:,3].rolling(window=2).mean()
     n_psd = len(psd)
     psd = np.concatenate((psd[:-1])).reshape(len(psd)-1,int((samples/2)))
@@ -35,7 +39,7 @@ def calc_mag_diff(x):
     mag_diff = np.zeros(x.shape[0]-2)
     for i in range(1,x.shape[0]-1):
         diff = x[i,:]-x[i-1,:]
-        mag_diff[i-1] = np.sqrt(np.power(diff[0],2)+np.power(diff[1],2)+np.power(diff[2],2))-1
+        mag_diff[i-1] = np.sqrt(np.power(diff[0],2)+np.power(diff[1],2)+np.power(diff[2],2))
     mag_diff = np.concatenate((mag_diff,np.zeros(2)))
     return mag_diff
 
@@ -54,6 +58,9 @@ test_files = data_files[data_files['subject_id']==subject].values
 
 for x in test_files[:,0]:
     data.append(load_subj(x, folder))
+
+for i in len(data):
+    if 
 
 
 data0 = list(compress(data,test_files[:,4]==0))
