@@ -19,9 +19,9 @@ def calc_mag_diff(x):
 def load_measurement(x,folder):
     samples = 100*5 # ten seconds interval
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
-    subj['mag_diff'] = calc_mag_diff(subj.values)
     subj['mag'] = subj.pow(2).sum(1).values
     subj['mag'] = np.sqrt(subj['mag'].values)
+    subj['mag_diff'] = calc_mag_diff(subj.values)
     psd = list()
     window = 'hann'
     for i in range(0,subj.values.shape[0],samples):
