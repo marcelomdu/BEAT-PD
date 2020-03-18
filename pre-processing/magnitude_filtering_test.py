@@ -50,35 +50,37 @@ def calc_mag_diff(x):
 
 #-----------------------------------------------------------------------------
 
-#test_files = pd.read_csv("test_files.txt",header=None,sep="\t").values
-data = list()
-folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-files = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/CIS-PD_Training_Data_IDs_Labels.csv"
+if __name__ == '__main__':
 
-subject = 1004
+    #test_files = pd.read_csv("test_files.txt",header=None,sep="\t").values
+    data = list()
+    folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
+    files = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/CIS-PD_Training_Data_IDs_Labels.csv"
 
-data_files = pd.read_csv(files)
+    subject = 1004
 
-test_files = pd.DataFrame(data_files[data_files['subject_id']==subject].values)
+    data_files = pd.read_csv(files)
 
-for x in test_files.values[:,0]:
-    data.append(load_subj(x, folder))
+    test_files = pd.DataFrame(data_files[data_files['subject_id']==subject].values)
 
-labels = {}
+    for x in test_files.values[:,0]:
+        data.append(load_subj(x, folder))
 
-labels[0] = test_files[test_files[4]==0].index.tolist()
-labels[1] = test_files[test_files[4]==1].index.tolist()
-labels[2] = test_files[test_files[4]==2].index.tolist()
-labels[3] = test_files[test_files[4]==3].index.tolist()
-labels[4] = test_files[test_files[4]==4].index.tolist()
+    labels = {}
 
-n = 4
+    labels[0] = test_files[test_files[4]==0].index.tolist()
+    labels[1] = test_files[test_files[4]==1].index.tolist()
+    labels[2] = test_files[test_files[4]==2].index.tolist()
+    labels[3] = test_files[test_files[4]==3].index.tolist()
+    labels[4] = test_files[test_files[4]==4].index.tolist()
 
-for i in range(0,4):
-    if len(labels[i])>0:
-        for j in labels[i][:n]:
-            plt.figure(str(j))
-            plt.title(str(i))
-            plt.imshow(data[int(j)][1], cmap='viridis')
-            # plt.plot(data[int(j)][4])
-        
+    n = 4
+
+    for i in range(0,4):
+        if len(labels[i])>0:
+            for j in labels[i][:n]:
+                plt.figure(str(j))
+                plt.title(str(i))
+                plt.imshow(data[int(j)][1], cmap='viridis')
+                # plt.plot(data[int(j)][4])
+            
