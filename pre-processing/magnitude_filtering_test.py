@@ -7,7 +7,7 @@ from numba import njit
 
 def load_subj(x,folder):
     sos = signal.butter(10, [2,20],btype='bandpass',fs=50,output='sos')
-    interval = 10
+    interval = 10 # in seconds
     samples = interval*50 # ten seconds interval
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
     subj['X_f'] = signal.sosfilt(sos, subj['X'].values)
@@ -17,14 +17,24 @@ def load_subj(x,folder):
     subj['mag_diff_pf'] = calc_mag_diff(subj.values[:,3:6])
     subj['mag_diff_f'] = signal.sosfilt(sos,subj['mag_diff'].values)
     psd = list()
-    window = 'hann'
+    # window = 'hann'
+    nperseg = samples
+    tau = nperseg/5
+    window = signal.windows.exponential(nperseg,tau=tau)
     for i in range(0,subj.values.shape[0],samples):
-        _, ps = signal.welch(subj['mag_diff_f'].values[i:i+samples-1],fs=50,window=window,detrend='linear',nperseg=1024)
-        ps = ps/np.max(ps) # Data normalization
-        psd.append(ps)
+        s = subj['mag_diff_f'].values[i:i+samples]
+        if s.shape[0] == samples:
+            _, ps = signal.welch(s,fs=50,window=window,detrend='linear',nperseg=nperseg)
+            ps = ps/np.max(ps) # Data normalization
+            psd.append(ps)
     n_psd = len(psd)
     psd = np.vstack(psd[:-1])
-    return subj, psd, n_psd
+    psd2 = list()
+    _,pds = signal.welch(subj['mag_diff_f'].values,fs=50,window=signal.get_window('hann',Nx=1024),nperseg=1024)
+    psd2.append(pds)
+    _,pds = signal.welch(subj['mag_diff_f'].values,fs=50,window=signal.windows.exponential(1024,tau=64),nperseg=1024)
+    psd2.append(pds)
+    return subj, psd, n_psd, psd2
 
 @njit
 def calc_mag_diff(x):
