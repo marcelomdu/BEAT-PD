@@ -6,7 +6,7 @@ from numba import njit
 
 
 def load_subj(x,folder):
-    sos = signal.butter(10, [2,20],btype='bandpass',fs=50,output='sos')
+    sos = signal.butter(10,4,btype='high',fs=50,output='sos')
     interval = 10 # in seconds
     samples = interval*50 # ten seconds interval
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
@@ -29,12 +29,15 @@ def load_subj(x,folder):
             psd.append(ps)
     n_psd = len(psd)
     psd = np.vstack(psd[:-1])
+    sm = np.argmax(psd,axis=1)
+    psd = psd[sm.argsort()]
+    sm = sm[sm.argsort()]
     psd2 = list()
     _,pds = signal.welch(subj['mag_diff_f'].values,fs=50,window=signal.get_window('hann',Nx=1024),nperseg=1024)
     psd2.append(pds)
     _,pds = signal.welch(subj['mag_diff_f'].values,fs=50,window=signal.windows.exponential(1024,tau=64),nperseg=1024)
     psd2.append(pds)
-    return subj, psd, n_psd, psd2
+    return subj, psd, n_psd, psd2, sm
 
 @njit
 def calc_mag_diff(x):
@@ -77,4 +80,5 @@ for i in range(0,4):
             plt.figure(str(j))
             plt.title(str(i))
             plt.imshow(data[int(j)][1], cmap='viridis')
+            # plt.plot(data[int(j)][4])
         
