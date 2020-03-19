@@ -25,6 +25,9 @@ def load_subj(x,folder):
             ps = ps/np.max(ps)
             # Take only frequencies above 3.5 Hz 
             psd.append(ps[35:])
+    spect = signal.spectrogram(subj['mag_diff_f'].values,fs=50,window=window,detrend='linear',nperseg=nperseg)
+    spect = spect[2].T
+    spect = spect/np.max(spect,axis=0)
     n_psd = len(psd)
     psd = np.vstack(psd[:-1])
     d1psd = (np.insert(psd,0,0,axis=0)-np.insert(psd,psd.shape[0],0,axis=0))[1:-1,:]
@@ -33,7 +36,7 @@ def load_subj(x,folder):
     d1psd = d1psd[np.argmax(psd[1:-1],axis=1).argsort()]
     d2psd = d2psd[np.argmax(psd[2:-2],axis=1).argsort()]
     psd = psd[np.argmax(psd,axis=1).argsort()]
-    return subj, n_psd, psd, d1psd, d2psd
+    return subj, n_psd, psd, d1psd, d2psd, spect
 
 @njit
 def calc_mag_diff(x):
@@ -53,7 +56,7 @@ if __name__ == '__main__':
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
     files = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/CIS-PD_Training_Data_IDs_Labels.csv"
 
-    subject = 1007
+    subject = 1004
 
     data_files = pd.read_csv(files)
 
@@ -77,12 +80,14 @@ if __name__ == '__main__':
             for j in labels[i][:n]:
                 plt.figure(str(j))
                 plt.title(str(i))
-                plt.subplot(131)
+                plt.subplot(141)
                 plt.imshow(data[int(j)][2], cmap='viridis')
-                plt.subplot(132)
+                plt.subplot(142)
                 plt.imshow(data[int(j)][3], cmap='viridis')
-                plt.subplot(133)
+                plt.subplot(143)
                 plt.imshow(data[int(j)][4], cmap='viridis')
+                plt.subplot(144)
+                plt.imshow(data[int(j)][5], cmap='viridis')
                 plt.show()
                 # plt.plot(data[int(j)][4])
             
