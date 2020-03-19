@@ -16,6 +16,49 @@ def calc_mag_diff(x):
     return mag_diff
 
 
+def load_spectrums(x,folder,interval=5):
+    sos = signal.butter(10,4,btype='high',fs=50,output='sos')
+    samples = interval*50 # interval in seconds
+    subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
+    subj['mag_diff'] = calc_mag_diff(subj.values[:,0:3])
+    subj['mag_diff_f'] = signal.sosfilt(sos,subj['mag_diff'].values)
+    psd = list()
+    nperseg = samples
+    tau = nperseg/5
+    window = signal.windows.exponential(nperseg,tau=tau)
+    # Calculates the Power Spectrum Density by Welch's method and its 1st and 2nd deltas
+    for i in range(0,subj.values.shape[0],samples):
+        s = subj['mag_diff_f'].values[i:i+samples]
+        if s.shape[0] == samples:
+            _, ps = signal.welch(s,fs=50,window=window,detrend='linear',nperseg=nperseg)
+            # Normalize data to the [0,1] interval
+            ps = ps/np.max(ps)
+            # Take only frequencies above 3.5 Hz 
+            psd.append(ps[35:])
+    n_psd = len(psd)
+    psd = np.vstack(psd[:-1])
+    d1psd = (np.insert(psd,0,0,axis=0)-np.insert(psd,psd.shape[0],0,axis=0))[1:-1,:]
+    d2psd = (np.insert(d1psd,0,0,axis=0)-np.insert(d1psd,d1psd.shape[0],0,axis=0))[1:-1,:]
+    # Arrange time intervals from lowest to highest peak frequency
+    d1psd = d1psd[np.argmax(psd[1:-1],axis=1).argsort()]
+    d2psd = d2psd[np.argmax(psd[2:-2],axis=1).argsort()]
+    psd = psd[np.argmax(psd,axis=1).argsort()]
+    # Stack PSD and its deltas
+    st_psd = np.stack((psd[4:,:],d1psd[2:,:],d2psd))
+    # Calculates the Spectrogram and its 1st and 2nd deltas
+    spect = signal.spectrogram(subj['mag_diff_f'].values,fs=50,window=window,detrend='linear',nperseg=nperseg)
+    spect = (spect[2]/np.max(spect[2],axis=0)).T[:,35:]
+    d1spect = (np.insert(spect,0,0,axis=0)-np.insert(spect,spect.shape[0],0,axis=0))[1:-1,:]
+    d2spect = (np.insert(d1spect,0,0,axis=0)-np.insert(d1spect,d1spect.shape[0],0,axis=0))[1:-1,:]
+    # Arrange time intervals from lowest to highest peak frequency
+    d1spect = d1spect[np.argmax(spect[1:-1],axis=1).argsort()]
+    d2spect = d2spect[np.argmax(spect[2:-2],axis=1).argsort()]
+    spect = spect[np.argmax(spect,axis=1).argsort()]
+    # Stack PSD and its deltas
+    st_spect = np.stack((spect[4:,:],d1spect[2:,:],d2spect))
+    
+    return st_psd, st_spect
+
 def load_measurement(x,folder,interval=10):
     samples = interval*50 # ten seconds interval from a 50 Hz sample rate
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
@@ -37,13 +80,16 @@ def load_measurement(x,folder,interval=10):
 
 def load_subject(subject_id,ids_file,folder):
     ids_file = pd.read_csv(folder+ids_file)
-    subject_measurements = list()
+    subject_psds = list()
+    subject_spects = list()
     measurements_labels_medication = list()
     measurements_labels_dyskinesia = list()
     measurements_labels_tremor = list()
     measurements_labels = dict()
     for measurement_id in ids_file[ids_file['subject_id'] == subject_id].values[:,0]:
-        subject_measurements.append(load_measurement(measurement_id,folder))
+        subject_psd, subject_spect = load_spectrums(measurement_id,folder)
+        subject_psds.append(subject_psd)
+        subject_spects.append(subject_spect)
         measurements_labels_medication.append(ids_file['on_off'][ids_file['measurement_id'] == measurement_id].values.astype(int))
         measurements_labels_dyskinesia.append(ids_file['dyskinesia'][ids_file['measurement_id'] == measurement_id].values.astype(int))
         measurements_labels_tremor.append(ids_file['tremor'][ids_file['measurement_id'] == measurement_id].values.astype(int))
@@ -53,7 +99,7 @@ def load_subject(subject_id,ids_file,folder):
     measurements_labels = np.hstack((measurements_labels_medication,measurements_labels_dyskinesia))
     measurements_labels = np.hstack((measurements_labels,measurements_labels_tremor))
     
-    return subject_measurements, measurements_labels
+    return subject_psds, subject_spects, measurements_labels
 
 #-----------------------------------------------------------------------------
     
@@ -62,7 +108,7 @@ if __name__ == '__main__':
     subjects_ids = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    f = hdf5_handler(folder+'training_data.hdf5','a')
+    f = hdf5_handler(folder+'training_data_PSD.hdf5','a')
 
     for subject_id in subjects_ids:
         print('Loading subject '+str(subject_id))
@@ -70,8 +116,16 @@ if __name__ == '__main__':
         measurements = subj.create_group('measurements')
         data = load_subject(subject_id,ids_file,folder)
         for i in range(0,len(data[0])):
-            measurements.create_dataset(str(i), data=data[0][i])
-        subj.create_dataset('labels', data=data[1])        
+            if i < 100:
+                if i < 10:
+                    n = '00'+str(i)
+                else:
+                    n = '0'+str(i)
+            else:
+                n = str(i)
+            measurements.create_dataset('PSD'+n,data=data[0][i])
+            measurements.create_dataset('Spect'+n, data=data[1][i])
+        subj.create_dataset('labels', data=data[2])        
 
     
     print('Prepare data done!')
