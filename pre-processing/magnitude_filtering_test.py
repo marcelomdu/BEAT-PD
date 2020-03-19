@@ -7,14 +7,10 @@ from numba import njit
 
 def load_subj(x,folder):
     sos = signal.butter(10,4,btype='high',fs=50,output='sos')
-    interval = 10 # in seconds
-    samples = interval*50 # ten seconds interval
+    interval = 5 # in seconds
+    samples = interval*50
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
-    subj['X_f'] = signal.sosfilt(sos, subj['X'].values)
-    subj['Y_f'] = signal.sosfilt(sos, subj['Y'].values)
-    subj['Z_f'] = signal.sosfilt(sos, subj['Z'].values)
     subj['mag_diff'] = calc_mag_diff(subj.values[:,0:3])
-    subj['mag_diff_pf'] = calc_mag_diff(subj.values[:,3:6])
     subj['mag_diff_f'] = signal.sosfilt(sos,subj['mag_diff'].values)
     psd = list()
     # window = 'hann'
@@ -25,19 +21,19 @@ def load_subj(x,folder):
         s = subj['mag_diff_f'].values[i:i+samples]
         if s.shape[0] == samples:
             _, ps = signal.welch(s,fs=50,window=window,detrend='linear',nperseg=nperseg)
-            ps = ps/np.max(ps) # Data normalization
-            psd.append(ps)
+            # Normalize data to the [0,1] interval
+            ps = ps/np.max(ps)
+            # Take only frequencies above 3.5 Hz 
+            psd.append(ps[35:])
     n_psd = len(psd)
     psd = np.vstack(psd[:-1])
-    sm = np.argmax(psd,axis=1)
-    psd = psd[sm.argsort()]
-    sm = sm[sm.argsort()]
-    psd2 = list()
-    _,pds = signal.welch(subj['mag_diff_f'].values,fs=50,window=signal.get_window('hann',Nx=1024),nperseg=1024)
-    psd2.append(pds)
-    _,pds = signal.welch(subj['mag_diff_f'].values,fs=50,window=signal.windows.exponential(1024,tau=64),nperseg=1024)
-    psd2.append(pds)
-    return subj, psd, n_psd, psd2, sm
+    d1psd = (np.insert(psd,0,0,axis=0)-np.insert(psd,psd.shape[0],0,axis=0))[1:-1,:]
+    d2psd = (np.insert(d1psd,0,0,axis=0)-np.insert(d1psd,d1psd.shape[0],0,axis=0))[1:-1,:]
+    # Arrange time intervals from lowest to highest peak frequency
+    d1psd = d1psd[np.argmax(psd[1:-1],axis=1).argsort()]
+    d2psd = d2psd[np.argmax(psd[2:-2],axis=1).argsort()]
+    psd = psd[np.argmax(psd,axis=1).argsort()]
+    return subj, n_psd, psd, d1psd, d2psd
 
 @njit
 def calc_mag_diff(x):
@@ -57,7 +53,7 @@ if __name__ == '__main__':
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
     files = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/CIS-PD_Training_Data_IDs_Labels.csv"
 
-    subject = 1004
+    subject = 1007
 
     data_files = pd.read_csv(files)
 
@@ -76,11 +72,17 @@ if __name__ == '__main__':
 
     n = 4
 
-    for i in range(0,4):
+    for i in range(0,5):
         if len(labels[i])>0:
             for j in labels[i][:n]:
                 plt.figure(str(j))
                 plt.title(str(i))
-                plt.imshow(data[int(j)][1], cmap='viridis')
+                plt.subplot(131)
+                plt.imshow(data[int(j)][2], cmap='viridis')
+                plt.subplot(132)
+                plt.imshow(data[int(j)][3], cmap='viridis')
+                plt.subplot(133)
+                plt.imshow(data[int(j)][4], cmap='viridis')
+                plt.show()
                 # plt.plot(data[int(j)][4])
             
