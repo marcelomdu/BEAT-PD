@@ -17,6 +17,7 @@ def load_subj(x,folder):
     nperseg = samples
     tau = nperseg/5
     window = signal.windows.exponential(nperseg,tau=tau)
+    # Calculates the Power Spectrum Density by Welch's method and its 1st and 2nd deltas
     for i in range(0,subj.values.shape[0],samples):
         s = subj['mag_diff_f'].values[i:i+samples]
         if s.shape[0] == samples:
@@ -25,9 +26,6 @@ def load_subj(x,folder):
             ps = ps/np.max(ps)
             # Take only frequencies above 3.5 Hz 
             psd.append(ps[35:])
-    spect = signal.spectrogram(subj['mag_diff_f'].values,fs=50,window=window,detrend='linear',nperseg=nperseg)
-    spect = spect[2].T
-    spect = spect/np.max(spect,axis=0)
     n_psd = len(psd)
     psd = np.vstack(psd[:-1])
     d1psd = (np.insert(psd,0,0,axis=0)-np.insert(psd,psd.shape[0],0,axis=0))[1:-1,:]
@@ -36,6 +34,10 @@ def load_subj(x,folder):
     d1psd = d1psd[np.argmax(psd[1:-1],axis=1).argsort()]
     d2psd = d2psd[np.argmax(psd[2:-2],axis=1).argsort()]
     psd = psd[np.argmax(psd,axis=1).argsort()]
+    # Calculates the Spectrogram
+    spect = signal.spectrogram(subj['mag_diff_f'].values,fs=50,window=window,detrend='linear',nperseg=nperseg)
+    spect = spect[2].T
+    spect = spect/np.max(spect,axis=0)
     return subj, n_psd, psd, d1psd, d2psd, spect
 
 @njit
