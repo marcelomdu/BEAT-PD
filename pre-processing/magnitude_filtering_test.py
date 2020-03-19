@@ -34,11 +34,21 @@ def load_subj(x,folder):
     d1psd = d1psd[np.argmax(psd[1:-1],axis=1).argsort()]
     d2psd = d2psd[np.argmax(psd[2:-2],axis=1).argsort()]
     psd = psd[np.argmax(psd,axis=1).argsort()]
-    # Calculates the Spectrogram
+    # Stack PSD and its deltas
+    st_psd = np.stack((psd[4:,:],d1psd[2:,:],d2psd))
+    # Calculates the Spectrogram and its 1st and 2nd deltas
     spect = signal.spectrogram(subj['mag_diff_f'].values,fs=50,window=window,detrend='linear',nperseg=nperseg)
-    spect = spect[2].T
-    spect = spect/np.max(spect,axis=0)
-    return subj, n_psd, psd, d1psd, d2psd, spect
+    spect = (spect[2]/np.max(spect[2],axis=0)).T[:,35:]
+    d1spect = (np.insert(spect,0,0,axis=0)-np.insert(spect,spect.shape[0],0,axis=0))[1:-1,:]
+    d2spect = (np.insert(d1spect,0,0,axis=0)-np.insert(d1spect,d1spect.shape[0],0,axis=0))[1:-1,:]
+    # Arrange time intervals from lowest to highest peak frequency
+    d1spect = d1spect[np.argmax(spect[1:-1],axis=1).argsort()]
+    d2spect = d2spect[np.argmax(spect[2:-2],axis=1).argsort()]
+    spect = spect[np.argmax(spect,axis=1).argsort()]
+    # Stack PSD and its deltas
+    st_spect = np.stack((spect[4:,:],d1spect[2:,:],d2spect))
+    
+    return subj, n_psd, st_psd, st_spect
 
 @njit
 def calc_mag_diff(x):
@@ -83,13 +93,9 @@ if __name__ == '__main__':
                 plt.figure(str(j))
                 plt.title(str(i))
                 plt.subplot(141)
-                plt.imshow(data[int(j)][2], cmap='viridis')
+                plt.imshow(data[int(j)][2][0,:,:], cmap='viridis')
                 plt.subplot(142)
-                plt.imshow(data[int(j)][3], cmap='viridis')
+                plt.imshow(data[int(j)][2][1,:,:], cmap='viridis')
                 plt.subplot(143)
-                plt.imshow(data[int(j)][4], cmap='viridis')
-                plt.subplot(144)
-                plt.imshow(data[int(j)][5], cmap='viridis')
-                plt.show()
-                # plt.plot(data[int(j)][4])
-            
+                plt.imshow(data[int(j)][2][2,:,:], cmap='viridis')
+
