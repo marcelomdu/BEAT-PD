@@ -57,27 +57,36 @@ def get_siamese_model(input_shape,type='2D'):
 def get_zhang_model(input_shape):
     # Model architecture    
     model = Sequential()
-    model.add(ZeroPadding3D(padding=(0,1,0)))
+    model.add(ZeroPadding3D(padding=(0,2,0)))
     model.add(Conv3D(128, (3,5,3), activation='relu', input_shape=input_shape, 
                 kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
-    model.add(MaxPooling2D(pool_size=(1, 3)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(MaxPooling3D(pool_size=(3,1,1)))
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(256, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(256, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(128, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(64, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(32, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(16, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(8, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(4, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+    model.add(ZeroPadding3D(padding=(0,2,0)))
+    model.add(Conv3D(1, (3,5,1), activation='relu', kernel_initializer=initialize_weights, 
                 bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
     model.add(Flatten())
     model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
@@ -86,7 +95,7 @@ def get_zhang_model(input_shape):
                 kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
     model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
                 kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
-    model.add(Dense(5,activatio='softmax'))
+    model.add(Dense(5,activation='softmax'))
     
     return model
 
