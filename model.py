@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Conv2D, ZeroPadding2D, Activation, Input, concatenate
+from tensorflow.keras.layers import Conv2D, Conv3D, ZeroPadding2D, Activation, Input, concatenate
 from tensorflow.keras.models import Model
 
 # from keras.layers.normalization import BatchNormalization
@@ -54,6 +54,11 @@ def get_siamese_model(input_shape,type='2D'):
 
     return siamese_net
 
+def get_vgg_model(input_shape,type='3D'):
+    model = Sequential()
+    model.add(Conv3D(64, (4,9), activation='relu', input_shape=input_shape, kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
+
+    return model
 
 def CNN_2D(input_shape):
     
