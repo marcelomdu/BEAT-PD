@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Conv2D, Conv3D, ZeroPadding2D, Activation, Input, concatenate
+from tensorflow.keras.layers import Conv2D, Conv3D, ZeroPadding3D, Activation, Input, concatenate
 from tensorflow.keras.models import Model
 
 # from keras.layers.normalization import BatchNormalization
@@ -12,7 +12,7 @@ from tensorflow.keras.models import Model
 # from keras.layers.merge import  Concatenate
 # from keras.layers.core import Lambda, Flatten, Dense
 from tensorflow.keras.layers import BatchNormalization
-from tensorflow.keras.layers import  MaxPooling2D
+from tensorflow.keras.layers import  MaxPooling2D, MaxPooling3D
 from tensorflow.keras.layers import  Concatenate
 from tensorflow.keras.layers import Lambda, Flatten, Dense
 from tensorflow.keras.initializers import glorot_uniform
@@ -54,10 +54,40 @@ def get_siamese_model(input_shape,type='2D'):
 
     return siamese_net
 
-def get_vgg_model(input_shape,type='3D'):
+def get_zhang_model(input_shape):
+    # Model architecture    
     model = Sequential()
-    model.add(Conv3D(64, (4,9), activation='relu', input_shape=input_shape, kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
-
+    model.add(ZeroPadding3D(padding=(0,1,0)))
+    model.add(Conv3D(128, (3,5,3), activation='relu', input_shape=input_shape, 
+                kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling2D(pool_size=(1, 3)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (5,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Flatten())
+    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
+    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
+    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
+    model.add(Dense(5,activatio='softmax'))
+    
     return model
 
 def CNN_2D(input_shape):

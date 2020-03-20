@@ -35,7 +35,6 @@ def load_spectrums(x,folder,interval=5):
             ps = ps/np.max(ps)
             # Take only frequencies above 3.5 Hz 
             psd.append(ps[35:])
-    n_psd = len(psd)
     psd = np.vstack(psd[:-1])
     d1psd = (np.insert(psd,0,0,axis=0)-np.insert(psd,psd.shape[0],0,axis=0))[1:-1,:]
     d2psd = (np.insert(d1psd,0,0,axis=0)-np.insert(d1psd,d1psd.shape[0],0,axis=0))[1:-1,:]
