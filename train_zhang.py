@@ -16,17 +16,11 @@ if __name__ == '__main__':
     num_classes = 5
 
     # Hyper parameters
-    # evaluate_every = 1000 # interval for evaluating model
     batch_size = 10
     epochs = 10000 # No. of training iterations
     
 
     weights_path = '/media/marcelomdu/Data/GIT_Repos/BEAT-PD/weights/'
-
-    # model = get_siamese_model((100, 129, 1))
-    # optimizer = Adam(lr = 0.00006)
-    # model.compile(loss="binary_crossentropy",optimizer=optimizer)
-
 
     print("Start Training")
     print("-------------------------------------")
