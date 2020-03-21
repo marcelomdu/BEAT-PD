@@ -12,7 +12,7 @@ if __name__ == '__main__':
     subjects_ids = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    f = hdf5_handler(folder+'training_data.hdf5','a')
+    f = hdf5_handler(folder+'training_data_PSD.hdf5','a')
 
     # Hyper parameters
     evaluate_every = 1000 # interval for evaluating model
@@ -40,8 +40,8 @@ if __name__ == '__main__':
         model.compile(loss="binary_crossentropy",optimizer=optimizer)
 
         # Load data
-        m_keys = list(map(int,list((f[str(subject_id)]['measurements']).keys())))
-        m_keys.sort()
+        m_keys = list((f[str(subject_id)]['measurements']).keys())
+        m_keys = m_keys[:int(len(m_keys)/2)]
         data = list()
         for key in m_keys:
             data.append(f[str(subject_id)]['measurements'][str(key)][:,:])

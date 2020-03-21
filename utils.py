@@ -2,13 +2,13 @@ import numpy as np
 import h5py
 import contextlib
 import copy
-from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
-from numpy.random import randint, choice
+from numpy.random import randint
 from itertools import compress
+from tensorflow.keras.utils import to_categorical
 
 
-def threshold_data(data,labels,threshold):
+def threshold_data_2D(data,labels,threshold):
     valid_data = list()
     valid_labels = list()
     for i in range(0,len(data)):
@@ -17,18 +17,34 @@ def threshold_data(data,labels,threshold):
             valid_labels.append(labels[i])
     return valid_data, valid_labels
 
+def threshold_data_3D(data,labels,threshold):
+    valid_data = list()
+    valid_labels = list()
+    for i in range(0,len(data)):
+        if (data[i].shape[1] >= threshold):
+            valid_data.append(data[i][:,-threshold:,:])
+            valid_labels.append(labels[i])
+    return valid_data, valid_labels
 
-def get_train_test(data, labels,threshold=True,th_value=100):
+def get_train_test(data, labels, dim='3D', categorical=True, num_classes=5, threshold=True, th_value=100):
     if threshold:
-        valid_data, valid_labels = threshold_data(data,labels,th_value)
+        if dim=='2D':
+            valid_data, valid_labels = threshold_data_2D(data,labels,th_value)
+        if dim=='3D':
+            valid_data, valid_labels = threshold_data_3D(data,labels,th_value)
     else:
         valid_data = data
         valid_labels = labels
     X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
-    # pairs, targets = get_pairs(X_train,y_train)
-   
-    return X_train, X_test, y_train, y_test
+    
+    X_train = np.stack(X_train)
+    X_test = np.stack(X_test)
 
+    if categorical:
+        y_train = to_categorical(y_train, num_classes)
+        y_test = to_categorical(y_test, num_classes)
+
+    return X_train, X_test, y_train, y_test
 
 def get_pairs(X,y):
     data = copy.deepcopy(X)
@@ -97,7 +113,7 @@ def get_pairs(X,y):
     return pairs, targets
 
 
-def test_model(model, train_data, val_data, train_labels, val_labels):
+def test_siamese(model, train_data, val_data, train_labels, val_labels):
     
     n_labels = list()
     train_data_list = list()
