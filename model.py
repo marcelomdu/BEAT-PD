@@ -123,3 +123,32 @@ def CNN_1D(input_shape):
     model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
 
     return model
+
+def VGG16(input_shape,num_classes):
+
+    model = Sequential()
+    model.add(Conv2D(input_shape=input_shape,filters=64,kernel_size=(3,3),padding="same", activation="relu"))
+    model.add(Conv2D(filters=64,kernel_size=(3,3),padding="same", activation="relu"))
+    model.add(MaxPooling2D(pool_size=(2,2),strides=(2,2)))
+    model.add(Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(filters=128, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling2D(pool_size=(2,2),strides=(2,2)))
+    model.add(Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(filters=256, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling2D(pool_size=(2,2),strides=(2,2)))
+    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling2D(pool_size=(2,2),strides=(2,2)))
+    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(filters=512, kernel_size=(3,3), padding="same", activation="relu", kernel_regularizer=l2(2e-4)))
+    model.add(MaxPooling2D(pool_size=(2,2),strides=(2,2)))
+
+    model.add(Flatten())
+    model.add(Dense(units=4096,activation="relu"))
+    model.add(Dense(units=4096,activation="relu"))
+    model.add(Dense(num_classes, activation="softmax"))
+
+    return model
