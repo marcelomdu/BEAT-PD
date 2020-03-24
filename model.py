@@ -93,6 +93,39 @@ def get_zhang_model(input_shape,num_classes):
     
     return model
 
+def get_dcnn_model(input_shape,num_classes):
+    # Model architecture
+    model = Sequential()
+    model.add(Conv2D(128, (3,3), activation='relu', input_shape=input_shape, padding='same',
+                kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4),data_format='channels_first'))
+    model.add(MaxPooling2D(pool_size=(1,2)))
+    model.add(Conv2D(256, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(256, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(128, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
+    model.add(MaxPooling2D(pool_size=(1,2)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(64, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
+    model.add(MaxPooling2D(pool_size=(1,2)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(16, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
+    model.add(Flatten())
+    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
+    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
+    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
+    model.add(Dense(num_classes,activation='softmax'))
+    
+    return model
+
 def CNN_2D(input_shape):
     
     model = Sequential()
