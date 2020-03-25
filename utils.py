@@ -26,7 +26,7 @@ def threshold_data_3D(data,labels,threshold):
             valid_labels.append(labels[i])
     return valid_data, valid_labels
 
-def get_train_test(data, labels, dim='3D', categorical=True, num_classes=5, threshold=True, th_value=100):
+def get_train_test(data, labels, dim='3D', categorical=True, num_classes=5, threshold=True, th_value=100, balance=True):
     if threshold:
         if dim=='2D':
             valid_data, valid_labels = threshold_data_2D(data,labels,th_value)
@@ -35,6 +35,10 @@ def get_train_test(data, labels, dim='3D', categorical=True, num_classes=5, thre
     else:
         valid_data = data
         valid_labels = labels
+    
+    if balance:
+        data, labels = get_balanced_data(data,labels)
+
     X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
     
     X_train = np.stack(X_train)
@@ -111,6 +115,19 @@ def get_pairs(X,y):
     pairs = [l_pairs,r_pairs]
     
     return pairs, targets
+
+def get_balanced_data(data,labels,n_class=5):
+    cat_data = dict()
+    for i in range(0,n_class):
+        cat_data[i] = list()
+    for i in range(0,len(labels)):
+        cat_data[labels[i]].append(data[i])
+    
+    
+
+
+
+    return cat_data        
 
 
 def test_siamese(model, train_data, val_data, train_labels, val_labels):

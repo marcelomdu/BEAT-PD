@@ -129,13 +129,13 @@ def get_dcnn_model(input_shape,num_classes):
 def CNN_2D(input_shape):
     
     model = Sequential()
-    model.add(Conv2D(64, (4,9), activation='relu', input_shape=input_shape, kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(64, (4,9), activation='relu', input_shape=input_shape, kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4),data_format='channels_first'))
     model.add(MaxPooling2D())
-    model.add(Conv2D(128, (4,10), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(128, (4,10), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
     model.add(MaxPooling2D())
-    model.add(Conv2D(128, (5,5), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(128, (5,5), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
     model.add(MaxPooling2D())
-    model.add(Conv2D(256, (4,6), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(256, (4,6), activation='relu', kernel_initializer=initialize_weights, bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
     model.add(Flatten())
     model.add(Dense(4096, activation='sigmoid', kernel_regularizer=l2(1e-3), kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
 
