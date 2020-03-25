@@ -26,7 +26,7 @@ def threshold_data_3D(data,labels,threshold):
             valid_labels.append(labels[i])
     return valid_data, valid_labels
 
-def get_train_test(data, labels, dim='3D', categorical=True, num_classes=5, threshold=True, th_value=100, balance=True):
+def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_samples=0, num_classes=5, threshold=True, th_value=100, balance=True):
     if threshold:
         if dim=='2D':
             valid_data, valid_labels = threshold_data_2D(data,labels,th_value)
@@ -37,9 +37,10 @@ def get_train_test(data, labels, dim='3D', categorical=True, num_classes=5, thre
         valid_labels = labels
     
     if balance:
-        data, labels = get_balanced_data(data,labels)
-
-    X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
+        num_classes = len(classes)
+        X_train, X_test, y_train, y_test, cat_data = get_balanced_data(data,labels,classes,num_samples)
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
     
     X_train = np.stack(X_train)
     X_test = np.stack(X_test)
@@ -116,18 +117,34 @@ def get_pairs(X,y):
     
     return pairs, targets
 
-def get_balanced_data(data,labels,n_class=5):
+def get_balanced_data(data,labels,classes,num_samples):
+    
+    X_train = list()
+    X_test = list()
+    y_train = list()
+    y_test = list()
+    
     cat_data = dict()
-    for i in range(0,n_class):
+    for i in classes:
         cat_data[i] = list()
     for i in range(0,len(labels)):
-        cat_data[labels[i]].append(data[i])
+        if labels[i] in classes:
+            cat_data[labels[i]].append(data[i])
     
-    
+    for i in classes:
+        for j in range(0, num_samples):
+            k = randint(0,len(cat_data[i]))
+            X = cat_data[i].pop(k)
+            X_test.append(X)
+            y_test.append(i)
+        for j in range(0, min(len(cat_data[i]),3*num_samples)):
+            k = randint(0,len(cat_data[i]))
+            X = cat_data[i].pop(k)
+            X_train.append(X)
+            y_train.append(i)
 
 
-
-    return cat_data        
+    return X_train, X_test, y_train, y_test, cat_data       
 
 
 def test_siamese(model, train_data, val_data, train_labels, val_labels):
