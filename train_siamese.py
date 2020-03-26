@@ -50,7 +50,7 @@ if __name__ == '__main__':
         idx = [subjects_ids[i] == subject_id for i in range(0,len(subjects_ids))]
         classes = list(np.compress(idx, n_labels[tgt_label]))[0]
         num_classes = len(classes)
-        num_samples = np.stack(n_samples)[idx][0]
+        n_tests = np.stack(n_samples)[idx][0]
         
         # Load data
         m_keys = list((f[str(subject_id)]['measurements']).keys())
@@ -60,9 +60,9 @@ if __name__ == '__main__':
             data.append(f[str(subject_id)]['measurements'][str(key)][:,:])
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
-        X_train, X_test, y_train, y_test = get_train_test(data, labels, classes=classes, num_samples=num_samples, categorical=False)
-
-        acc_file = open(os.path.join(weights_path,'{}_acc.txt'.format(subject_id),'a'))
+        X_train, X_test, y_train, y_test = get_train_test(data, labels, classes=classes, num_samples=n_tests, categorical=False, th_value=200)
+        
+        inputs, targets = get_pairs(X_train,y_train)
         
         # Initialize model
         model = get_siamese_model((3,200, 91),num_classes)
@@ -80,7 +80,7 @@ if __name__ == '__main__':
                 print("\n ------------- ")
                 print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
                 val_acc = test_siamese(model, X_train, X_test, y_train, y_test)
-                acc_file.write(str(val_acc)+',')
+                # acc_file.write(str(val_acc)+',')
                 print('accuracy: {0}'.format(val_acc))
                 if val_acc >= best:
                     print("Current best: {0}, previous best: {1}".format(val_acc, best))
@@ -89,7 +89,7 @@ if __name__ == '__main__':
                     weights = model.get_weights()
                     best = val_acc
         
-        acc_file.close()
+        # acc_file.close()
         
         
 

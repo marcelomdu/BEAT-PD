@@ -38,11 +38,11 @@ def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_sam
     
     if balance:
         num_classes = len(classes)
-        X_train, X_test, y_train, y_test, cat_data = get_balanced_data(data,labels,classes,num_samples)
+        X_train, X_test, y_train, y_test, cat_data = get_balanced_data(valid_data,valid_labels,classes,num_samples)
     else:
         X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
+        X_train = np.stack(X_train)
     
-    X_train = np.stack(X_train)
     X_test = np.stack(X_test)
 
     if categorical:
@@ -52,34 +52,43 @@ def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_sam
     return X_train, X_test, y_train, y_test
 
 def get_pairs(X,y):
-    data = copy.deepcopy(X)
-    labels = copy.deepcopy(y)
-    id_labels = [0,1,2,3,4]
+    # X = copy.deepcopy(X)
+    # y = copy.deepcopy(y)
+    # id_y = [0,1,2,3,4]
     l_matched = list()
     r_matched = list()
     l_unmatched = list()
     r_unmatched = list()
-    m_labels = list()
-    u_labels = list()
-    cat_data = dict()
-    n = int(len(data)/4)
+    m_y = list()
+    u_y = list()
+    cat_X = dict()
+    n = int(len(X)/4)
+    
+    for i in range(0,len(X)):
+        for j in range(0,int(len(X[i])/4)+1):
+            k = randint(0,len(X[i]))
+            l_matched.append(X[i].pop(k))
+            m_y.append(y[i].pop(k))
+            k = randint(0,len(X[i]))
+            r_matched.append(X[i].pop(k))
+    
     
     for i in range(0,n):
-        j = randint(0,len(data))
-        l_matched.append(data.pop(j))
-        m_labels.append(labels.pop(j))
-        j = randint(0,len(data))
-        l_unmatched.append(data.pop(j))
-        u_labels.append(labels.pop(j))
+        j = randint(0,len(X))
+        l_matched.append(X.pop(j))
+        m_y.append(y.pop(j))
+        j = randint(0,len(X))
+        l_unmatched.append(X.pop(j))
+        u_y.append(y.pop(j))
     
     for i in range(0,5):
-        cat_data[i] = list(compress(data,np.asarray(labels) == i))
+        cat_X[i] = list(compress(X,np.asarray(y) == i))
     
     l_m_pop = np.ones(len(l_matched))
     for i in range(0,len(l_matched)):
-        j = m_labels[i]#[0]
-        if len(cat_data[j])>0:
-            m = cat_data[j].pop(0)
+        j = m_y[i]#[0]
+        if len(cat_X[j])>0:
+            m = cat_X[j].pop(0)
             r_matched.append(m)
         else:
             l_m_pop[i] = 0  
@@ -87,18 +96,18 @@ def get_pairs(X,y):
     
     l_u_pop = np.ones(len(l_unmatched))
     for i in range(0,len(l_unmatched)):
-        c_labels = list(compress(id_labels,np.asarray(id_labels) != u_labels[i]))#[0]))
-        if len(cat_data[c_labels[0]])>0:
-            u = cat_data[c_labels[0]].pop(0)
+        c_y = list(compress(id_y,np.asarray(id_y) != u_y[i]))#[0]))
+        if len(cat_X[c_y[0]])>0:
+            u = cat_X[c_y[0]].pop(0)
             r_unmatched.append(u)
-        elif len(cat_data[c_labels[1]])>0:
-            u = cat_data[c_labels[1]].pop(0)
+        elif len(cat_X[c_y[1]])>0:
+            u = cat_X[c_y[1]].pop(0)
             r_unmatched.append(u)
-        elif len(cat_data[c_labels[2]])>0:
-            u = cat_data[c_labels[2]].pop(0)
+        elif len(cat_X[c_y[2]])>0:
+            u = cat_X[c_y[2]].pop(0)
             r_unmatched.append(u)
-        elif len(cat_data[c_labels[3]])>0:
-            u = cat_data[c_labels[3]].pop(0)
+        elif len(cat_X[c_y[3]])>0:
+            u = cat_X[c_y[3]].pop(0)
             r_unmatched.append(u)
         else:
             l_u_pop[i] = 0
@@ -111,22 +120,24 @@ def get_pairs(X,y):
     r_matched = np.stack(r_matched)
     r_unmatched = np.stack(r_unmatched)
     r_pairs = np.vstack((r_matched,r_unmatched))
-    l_pairs = l_pairs.reshape(l_pairs.shape[0],l_pairs.shape[1],l_pairs.shape[2],1)
-    r_pairs = r_pairs.reshape(r_pairs.shape[0],r_pairs.shape[1],r_pairs.shape[2],1)
+    l_pairs = l_pairs.reshape(l_pairs.shape[0],l_pairs.shape[1],l_pairs.shape[2],l_pairs.shape[3],1)
+    r_pairs = r_pairs.reshape(r_pairs.shape[0],r_pairs.shape[1],r_pairs.shape[2],r_pairs.shape[3],1)
     pairs = [l_pairs,r_pairs]
     
     return pairs, targets
 
 def get_balanced_data(data,labels,classes,num_samples):
     
-    X_train = list()
+    X_train = dict()
     X_test = list()
-    y_train = list()
+    y_train = dict()
     y_test = list()
     
     cat_data = dict()
     for i in classes:
         cat_data[i] = list()
+        X_train[i] = list()
+        y_train[i] = list()
     for i in range(0,len(labels)):
         if labels[i] in classes:
             cat_data[labels[i]].append(data[i])
@@ -140,8 +151,8 @@ def get_balanced_data(data,labels,classes,num_samples):
         for j in range(0, min(len(cat_data[i]),3*num_samples)):
             k = randint(0,len(cat_data[i]))
             X = cat_data[i].pop(k)
-            X_train.append(X)
-            y_train.append(i)
+            X_train[i].append(X)
+            y_train[i].append(i)
 
 
     return X_train, X_test, y_train, y_test, cat_data       
