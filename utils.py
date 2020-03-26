@@ -3,6 +3,7 @@ import h5py
 import contextlib
 import copy
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 from numpy.random import randint
 from itertools import compress
 from tensorflow.keras.utils import to_categorical
@@ -139,36 +140,23 @@ def get_balanced_data(data,labels,classes,num_samples):
     return X_train, X_test, y_train, y_test, cat_data       
 
 
-def test_siamese(model, train_data, val_data, train_labels, val_labels):
+def test_siamese(model, val_data, val_labels):
     
-    n_labels = list()
-    train_data_list = list()
+    val_data, val_labels = shuffle(val_data,val_labels)
+    n_corrects = 0
     
-    for i in range(0,5):
-        train_data_list.append(list(compress(train_data,np.asarray(train_labels)==i)))
-        n_labels.append(len(train_data_list[i]))
-        if n_labels[i]>0:
-            train_data_list[i] = np.stack(train_data_list[i])
-            train_data_list[i] = train_data_list[i].reshape(train_data_list[i].shape[0],train_data_list[i].shape[1],train_data_list[i].shape[2],train_data_list[i].shape[3])
-
-    val_data = np.stack(val_data)
-
-    n_correct = 0
-
-    for i in range(0,val_data.shape[0]):
-        preds = list()
-        for j in range(0,len(n_labels)):
-            if n_labels[j]>0:
-                inputs = [(np.asarray([val_data[i,:,:,:]]*n_labels[j]).reshape(n_labels[j],val_data.shape[1],val_data.shape[2],val_data.shape[3])),train_data_list[j]]
-                pred = np.sum(model.predict(inputs))/n_labels[j]
-            else:
-                pred = -1
-            preds.append(pred)
-        if np.argmax(np.stack(preds))==val_labels[i]:
-            n_correct += 1
-
-    accuracy = n_correct/len(val_labels)
-
+    for i in range(0,len(val_labels)):
+        val_idx = np.array(np.zeros(len(val_labels)),dtype=bool)
+        val_idx[i] = True
+        val_idx = np.invert(val_idx)
+        pred_labels = list(np.compress(val_idx,val_labels))
+        val_inputs = [(np.asarray([val_data[i,:,:,:]]*(len(val_labels)-1)).reshape((len(val_labels)-1),val_data.shape[1],val_data.shape[2],val_data.shape[3])),val_data[val_idx,:,:,:]]
+        pred = model.predict(val_inputs)
+        if val_labels[i] == pred_labels[np.argmax(pred)]:
+            n_corrects += 1
+            
+    accuracy = n_corrects/len(val_labels)*100
+    
     return accuracy
     
     
@@ -183,56 +171,3 @@ def hdf5_handler(filename, mode="r"):
         return h5py.File(fid, mode)
     
     
-#------------------------------------------------------------------------------------
-# Old func defs
-
-#def make_oneshot_task(val_data,val_labels,N):
-#    """Create pairs of test image, support set for testing N way one-shot learning. """
-#    _, w, h = val_data.shape
-#    
-#    test_label = randint(0,4)
-#    
-#    # Matched and unmatched candidates
-#    i_m = (np.asarray(val_labels)==test_label)[:,0]
-#    i_u = (np.asarray(val_labels)!=test_label)[:,0]
-#    m_candidates = val_data[i_m,:,:]
-#    u_candidates = val_data[i_u,:,:]
-#    
-#    # Random indices for sampling
-#    try:
-#        m_idx1, m_idx2 = choice(m_candidates.shape[0],replace=False,size=(2,)) # Non repetitive random indices
-#        u_indices = randint(0,u_candidates.shape[0],size=(N,))
-#    except:
-#        print('Not enough validation candidates')
-#
-#    # Matched image from support_set will be allocated to position '0' then shuffled
-#    test_image = np.asarray([m_candidates[m_idx1,:,:]]*N).reshape(N, w, h, 1)
-#    support_set = u_candidates[u_indices,:,:]
-#    support_set[0,:,:] = m_candidates[m_idx2,:,:]
-#    support_set = support_set.reshape(N, w, h, 1)
-#    targets = np.zeros((N,))
-#    targets[0] = 1
-#    targets, test_image, support_set = shuffle(targets, test_image, support_set)
-#
-#    pairs = [test_image, support_set]
-#
-#    return pairs, targets
-#
-#  
-#def test_oneshot(model,val_data,val_labels,N,k, verbose = 0):
-#    """Test average N way oneshot learning accuracy of a siamese neural net over k one-shot tasks"""
-#    n_correct = 0
-#    if verbose:
-#        print("Evaluating model on {} random {} way one-shot learning tasks ... \n".format(k,N))
-#    for _ in range(k):
-#        # try:
-#        inputs, targets = make_oneshot_task(val_data,val_labels,N)
-#        probs = model.predict(inputs)
-#        if np.argmax(probs) == np.argmax(targets):
-#            n_correct+=1
-#        # except:
-#        #     print('Not enough validation candidates')
-#    percent_correct = (100.0 * n_correct / k)
-#    if verbose:
-#        print("Got an average of {}% {} way one-shot learning accuracy \n".format(percent_correct,N))
-#    return percent_correct

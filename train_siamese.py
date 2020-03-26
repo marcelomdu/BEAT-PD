@@ -23,9 +23,9 @@ if __name__ == '__main__':
     f = hdf5_handler(folder+'training_data_PSD.hdf5','a')
 
     # Hyper parameters
-    evaluate_every = 1000 # interval for evaluating model
+    evaluate_every = 50 # interval for evaluating model
     #batch_size = 32
-    n_iter = 10000 # No. of training iterations
+    n_iter = 1000 # No. of training iterations
     best = -1
     
     # Label to be trained (On_Off = 0, Dyskinesia = 1, Tremor = 2)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
             if i % evaluate_every == 0:
                 print("\n ------------- ")
                 print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
-                val_acc = test_siamese(model, X_train, X_test, y_train, y_test)
+                val_acc = test_siamese(model,val_data=X_test,val_labels=y_test)
                 # acc_file.write(str(val_acc)+',')
                 print('accuracy: {0}'.format(val_acc))
                 if val_acc >= best:
