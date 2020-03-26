@@ -21,8 +21,8 @@ def threshold_data_3D(data,labels,threshold):
     valid_data = list()
     valid_labels = list()
     for i in range(0,len(data)):
-        if (data[i].shape[1] >= threshold):
-            valid_data.append(data[i][:,-threshold:,:])
+        if (data[i].shape[0] >= threshold):
+            valid_data.append(data[i][-threshold:,:,:])
             valid_labels.append(labels[i])
     return valid_data, valid_labels
 

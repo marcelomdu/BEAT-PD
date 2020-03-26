@@ -57,7 +57,7 @@ if __name__ == '__main__':
         m_keys = m_keys[:int(len(m_keys)/2)]
         data = list()
         for key in m_keys:
-            data.append(f[str(subject_id)]['measurements'][str(key)][:,:])
+            data.append(np.moveaxis(f[str(subject_id)]['measurements'][str(key)][:,:],0,-1))
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
         X_train, X_test, y_train, y_test = get_train_test(data, labels, 
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         # inputs, targets = get_pairs(X_train,y_train)
         
         # Initialize model
-        model = get_siamese_model((3,200, 91),num_classes)
+        model = get_siamese_model((200, 91, 3))
         if best>0:
             model.set_weights(weights)
         optimizer = Adam(lr = 0.00006)
