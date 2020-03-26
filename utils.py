@@ -26,7 +26,7 @@ def threshold_data_3D(data,labels,threshold):
             valid_labels.append(labels[i])
     return valid_data, valid_labels
 
-def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_samples=0, num_classes=5, threshold=True, th_value=100, balance=True):
+def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_samples=0, num_classes=5, threshold=True, th_value=100, balance=False):
     if threshold:
         if dim=='2D':
             valid_data, valid_labels = threshold_data_2D(data,labels,th_value)
@@ -38,7 +38,7 @@ def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_sam
     
     if balance:
         num_classes = len(classes)
-        X_train, X_test, y_train, y_test, cat_data = get_balanced_data(valid_data,valid_labels,classes,num_samples)
+        X_train, X_test, y_train, y_test, _ = get_balanced_data(valid_data,valid_labels,classes,num_samples)
     else:
         X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
         X_train = np.stack(X_train)
@@ -51,68 +51,46 @@ def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_sam
 
     return X_train, X_test, y_train, y_test
 
-def get_pairs(X,y):
-    # X = copy.deepcopy(X)
-    # y = copy.deepcopy(y)
-    # id_y = [0,1,2,3,4]
+def get_pairs(data_train,labels_train):
+    X = copy.deepcopy(data_train)
     l_matched = list()
     r_matched = list()
     l_unmatched = list()
     r_unmatched = list()
-    m_y = list()
-    u_y = list()
-    cat_X = dict()
     n = int(len(X)/4)
+    x_len = list()
+    n_classes = len(X)
     
-    for i in range(0,len(X)):
-        for j in range(0,int(len(X[i])/4)+1):
+    for i in range(0,n_classes):
+        for _ in range(0,int(len(X[i])/4)):
             k = randint(0,len(X[i]))
             l_matched.append(X[i].pop(k))
-            m_y.append(y[i].pop(k))
             k = randint(0,len(X[i]))
             r_matched.append(X[i].pop(k))
-    
-    
-    for i in range(0,n):
-        j = randint(0,len(X))
-        l_matched.append(X.pop(j))
-        m_y.append(y.pop(j))
-        j = randint(0,len(X))
-        l_unmatched.append(X.pop(j))
-        u_y.append(y.pop(j))
-    
-    for i in range(0,5):
-        cat_X[i] = list(compress(X,np.asarray(y) == i))
-    
-    l_m_pop = np.ones(len(l_matched))
-    for i in range(0,len(l_matched)):
-        j = m_y[i]#[0]
-        if len(cat_X[j])>0:
-            m = cat_X[j].pop(0)
-            r_matched.append(m)
-        else:
-            l_m_pop[i] = 0  
-    l_matched = list(compress(l_matched,l_m_pop.astype(bool)))        
-    
-    l_u_pop = np.ones(len(l_unmatched))
-    for i in range(0,len(l_unmatched)):
-        c_y = list(compress(id_y,np.asarray(id_y) != u_y[i]))#[0]))
-        if len(cat_X[c_y[0]])>0:
-            u = cat_X[c_y[0]].pop(0)
-            r_unmatched.append(u)
-        elif len(cat_X[c_y[1]])>0:
-            u = cat_X[c_y[1]].pop(0)
-            r_unmatched.append(u)
-        elif len(cat_X[c_y[2]])>0:
-            u = cat_X[c_y[2]].pop(0)
-            r_unmatched.append(u)
-        elif len(cat_X[c_y[3]])>0:
-            u = cat_X[c_y[3]].pop(0)
-            r_unmatched.append(u)
-        else:
-            l_u_pop[i] = 0
-    l_unmatched = list(compress(l_unmatched,l_u_pop.astype(bool)))
-    
+        x_len.append(len(X[i]))
+        
+    for i in range(0,n_classes-1):
+        if np.sum(x_len)>1:
+            l_choose = list(X.keys())
+            n = np.argmin(x_len)
+            l = l_choose[n]
+            l_choose.pop(n)
+            x_len.pop(n)
+            for _ in range(0,len(X[l])):
+                k1 = randint(0,len(X[l]))
+                l_unmatched.append(X[l].pop(k1))
+                k2 = randint(0,len(l_choose))
+                l2 = l_choose[int(k2)]
+                if len(X[l2])>0:
+                    k1 = randint(0,len(X[l2]))
+                    r_unmatched.append(X[l2].pop(k1))
+                    x_len[int(k2)] -= 1
+                if len(X[l2])==0:
+                    l_choose.pop(k2)
+                    X.pop(l2)
+                    x_len.pop(k2)
+            X.pop(l)
+            
     targets = np.hstack((np.ones(len(l_matched)),np.zeros(len(l_unmatched))))
     l_matched = np.stack(l_matched)
     l_unmatched = np.stack(l_unmatched)
@@ -120,8 +98,8 @@ def get_pairs(X,y):
     r_matched = np.stack(r_matched)
     r_unmatched = np.stack(r_unmatched)
     r_pairs = np.vstack((r_matched,r_unmatched))
-    l_pairs = l_pairs.reshape(l_pairs.shape[0],l_pairs.shape[1],l_pairs.shape[2],l_pairs.shape[3],1)
-    r_pairs = r_pairs.reshape(r_pairs.shape[0],r_pairs.shape[1],r_pairs.shape[2],r_pairs.shape[3],1)
+    l_pairs = l_pairs.reshape(l_pairs.shape[0],l_pairs.shape[1],l_pairs.shape[2],l_pairs.shape[3])
+    r_pairs = r_pairs.reshape(r_pairs.shape[0],r_pairs.shape[1],r_pairs.shape[2],r_pairs.shape[3])
     pairs = [l_pairs,r_pairs]
     
     return pairs, targets
@@ -143,12 +121,12 @@ def get_balanced_data(data,labels,classes,num_samples):
             cat_data[labels[i]].append(data[i])
     
     for i in classes:
-        for j in range(0, num_samples):
+        for _ in range(0, num_samples):
             k = randint(0,len(cat_data[i]))
             X = cat_data[i].pop(k)
             X_test.append(X)
             y_test.append(i)
-        for j in range(0, min(len(cat_data[i]),3*num_samples)):
+        for _ in range(0, min(len(cat_data[i]),5*num_samples)):
             k = randint(0,len(cat_data[i]))
             X = cat_data[i].pop(k)
             X_train[i].append(X)
@@ -168,7 +146,7 @@ def test_siamese(model, train_data, val_data, train_labels, val_labels):
         n_labels.append(len(train_data_list[i]))
         if n_labels[i]>0:
             train_data_list[i] = np.stack(train_data_list[i])
-            train_data_list[i] = train_data_list[i].reshape(train_data_list[i].shape[0],train_data_list[i].shape[1],train_data_list[i].shape[2],1)
+            train_data_list[i] = train_data_list[i].reshape(train_data_list[i].shape[0],train_data_list[i].shape[1],train_data_list[i].shape[2],train_data_list[i].shape[3])
 
     val_data = np.stack(val_data)
 
@@ -178,7 +156,7 @@ def test_siamese(model, train_data, val_data, train_labels, val_labels):
         preds = list()
         for j in range(0,len(n_labels)):
             if n_labels[j]>0:
-                inputs = [(np.asarray([val_data[i,:,:]]*n_labels[j]).reshape(n_labels[j],val_data.shape[1],val_data.shape[2],1)),train_data_list[j]]
+                inputs = [(np.asarray([val_data[i,:,:,:]]*n_labels[j]).reshape(n_labels[j],val_data.shape[1],val_data.shape[2],val_data.shape[3])),train_data_list[j]]
                 pred = np.sum(model.predict(inputs))/n_labels[j]
             else:
                 pred = -1

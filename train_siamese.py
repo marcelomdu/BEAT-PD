@@ -60,9 +60,14 @@ if __name__ == '__main__':
             data.append(f[str(subject_id)]['measurements'][str(key)][:,:])
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
-        X_train, X_test, y_train, y_test = get_train_test(data, labels, classes=classes, num_samples=n_tests, categorical=False, th_value=200)
+        X_train, X_test, y_train, y_test = get_train_test(data, labels, 
+                                                        classes=classes, 
+                                                        num_samples=n_tests, 
+                                                        categorical=False, 
+                                                        th_value=200, 
+                                                        balance=True)
         
-        inputs, targets = get_pairs(X_train,y_train)
+        # inputs, targets = get_pairs(X_train,y_train)
         
         # Initialize model
         model = get_siamese_model((3,200, 91),num_classes)
