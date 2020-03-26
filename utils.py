@@ -77,18 +77,21 @@ def get_pairs(data_train,labels_train):
             l_choose.pop(n)
             x_len.pop(n)
             for _ in range(0,len(X[l])):
-                k1 = randint(0,len(X[l]))
-                l_unmatched.append(X[l].pop(k1))
-                k2 = randint(0,len(l_choose))
-                l2 = l_choose[int(k2)]
-                if len(X[l2])>0:
-                    k1 = randint(0,len(X[l2]))
-                    r_unmatched.append(X[l2].pop(k1))
-                    x_len[int(k2)] -= 1
-                if len(X[l2])==0:
-                    l_choose.pop(k2)
-                    X.pop(l2)
-                    x_len.pop(k2)
+                if len(l_choose)>0:
+                    k1 = randint(0,len(X[l]))
+                    l_unmatched.append(X[l].pop(k1))
+                    k2 = randint(0,len(l_choose))
+                    l2 = l_choose[int(k2)]
+                if (l2 in list(X.keys())):
+                    if len(X[l2]) > 0:
+                        k1 = randint(0,len(X[l2]))
+                        r_unmatched.append(X[l2].pop(k1))
+                        x_len[int(k2)] -= 1
+                if (l2 in list(X.keys())):
+                    if len(X[l2])==0:
+                        l_choose.pop(k2)
+                        X.pop(l2)
+                        x_len.pop(k2)
             X.pop(l)
             
     targets = np.hstack((np.ones(len(l_matched)),np.zeros(len(l_unmatched))))
