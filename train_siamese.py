@@ -30,7 +30,7 @@ if __name__ == '__main__':
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
     if args.lsa:
-        folder = "/home/marcon/datasets/BEAT-PD/"
+        folder = "/home/marcelomd/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
     f = hdf5_handler(folder+'training_data_PSD.hdf5','a')
 
     # Hyper parameters
