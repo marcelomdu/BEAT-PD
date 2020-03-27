@@ -109,27 +109,32 @@ def get_siamese_model(input_shape):
 
     # Convolutional Neural Network
     model = Sequential()
-    model.add(Conv2D(128, (5,3), activation='relu', input_shape=input_shape, padding='same',
+    model.add(Conv2D(3072, (200,30), activation='relu', input_shape=input_shape,
                 kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
-    model.add(MaxPooling2D(pool_size=(1,3)))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(128, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(64, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(32, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(16, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(8, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(4, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    # model.add(MaxPooling2D(pool_size=(1,2)))
+    # model.add(ZeroPadding2D(padding=(1,0)))
+    # model.add(Conv2D(128, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    # model.add(MaxPooling2D(pool_size=(1,2)))
+    # model.add(ZeroPadding2D(padding=(1,0)))
+    # model.add(Conv2D(64, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    # model.add(MaxPooling2D(pool_size=(1,2)))
+    # model.add(ZeroPadding2D(padding=(1,0)))
+    # model.add(Conv2D(32, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    # model.add(MaxPooling2D(pool_size=(1,2)))
+    # model.add(ZeroPadding2D(padding=(1,0)))
+    # model.add(Conv2D(16, (3,3), activation='relu', kernel_initializer=initialize_weights, 
+    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    # model.add(MaxPooling2D(pool_size=(1,2)))
+    # model.add(ZeroPadding2D(padding=(1,0)))
+    # model.add(Conv2D(8, (3,5), activation='relu', kernel_initializer=initialize_weights, 
+    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    # model.add(MaxPooling2D(pool_size=(1,2)))
+    # model.add(ZeroPadding2D(padding=(2,0)))
+    # model.add(Conv2D(4, (3,5), activation='relu', kernel_initializer=initialize_weights, 
+    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
     model.add(Flatten())
     model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
                 kernel_initializer=initialize_weights, bias_initializer=initialize_bias))

@@ -130,7 +130,7 @@ def get_balanced_data(data,labels,classes,num_samples):
             X = cat_data[i].pop(k)
             X_test.append(X)
             y_test.append(i)
-        for _ in range(0, min(len(cat_data[i]),5*num_samples)):
+        for _ in range(0, min(len(cat_data[i]),100*num_samples)):
             k = randint(0,len(cat_data[i]))
             X = cat_data[i].pop(k)
             X_train[i].append(X)
@@ -144,7 +144,9 @@ def test_siamese(model, val_data, val_labels):
     
     val_data, val_labels = shuffle(val_data,val_labels)
     n_corrects = 0
-    
+    val_truth = list()
+    val_pred = list()
+
     for i in range(0,len(val_labels)):
         val_idx = np.array(np.zeros(len(val_labels)),dtype=bool)
         val_idx[i] = True
@@ -152,12 +154,14 @@ def test_siamese(model, val_data, val_labels):
         pred_labels = list(np.compress(val_idx,val_labels))
         val_inputs = [(np.asarray([val_data[i,:,:,:]]*(len(val_labels)-1)).reshape((len(val_labels)-1),val_data.shape[1],val_data.shape[2],val_data.shape[3])),val_data[val_idx,:,:,:]]
         pred = model.predict(val_inputs)
+        val_truth.append(val_labels[i])
+        val_pred.append(pred_labels[np.argmax(pred)])
         if val_labels[i] == pred_labels[np.argmax(pred)]:
             n_corrects += 1
             
     accuracy = n_corrects/len(val_labels)*100
     
-    return accuracy
+    return accuracy, val_truth, val_pred
     
     
 def hdf5_handler(filename, mode="r"):

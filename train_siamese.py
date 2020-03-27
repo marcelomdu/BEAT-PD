@@ -24,8 +24,9 @@ if __name__ == '__main__':
 
     # Hyper parameters
     evaluate_every = 50 # interval for evaluating model
+    ensembles = 10
     #batch_size = 32
-    n_iter = 1000 # No. of training iterations
+    n_iter = 500 # No. of training iterations
     best = -1
     
     # Label to be trained (On_Off = 0, Dyskinesia = 1, Tremor = 2)
@@ -33,6 +34,7 @@ if __name__ == '__main__':
     n_samples = n_test[tgt_label]
     valid_subjects = [n_samples[k] != 0 for k in range(0,len(n_samples))]
     valid_subjects_ids = list(np.compress(valid_subjects,subjects_ids))
+    # valid_subjects_ids = [1007]
 
     weights_path = '/media/marcelomdu/Data/GIT_Repos/BEAT-PD/weights/'
 
@@ -77,22 +79,25 @@ if __name__ == '__main__':
         model.compile(loss="binary_crossentropy",optimizer=optimizer)
         
         # Train
-        for i in range(1, n_iter+1):
+        for i in range(0, ensembles):
             inputs, targets = get_pairs(X_train,y_train)
-            loss = model.train_on_batch(inputs, targets)
-            print("Train Loss: {0}".format(loss)+" Iter: {}".format(i))
-            if i % evaluate_every == 0:
-                print("\n ------------- ")
-                print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
-                val_acc = test_siamese(model,val_data=X_test,val_labels=y_test)
-                # acc_file.write(str(val_acc)+',')
-                print('accuracy: {0}'.format(val_acc))
-                if val_acc >= best:
-                    print("Current best: {0}, previous best: {1}".format(val_acc, best))
-                    model.save_weights(os.path.join(weights_path, 'weights.{}.h5'.format(subject_id)))
-                    model.save_weights(os.path.join(weights_path, 'weights.best.h5'))
-                    weights = model.get_weights()
-                    best = val_acc
+            for i in range(1, n_iter+1):
+                loss = model.train_on_batch(inputs, targets)
+                print("Train Loss: {0}".format(loss)+" Iter: {}".format(i))
+                if i % evaluate_every == 0:
+                    print("\n ------------- ")
+                    print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
+                    val_acc, val_truth, val_pred = test_siamese(model,val_data=X_test,val_labels=y_test)
+                    # acc_file.write(str(val_acc)+',')
+                    print('tru: {0}'.format(val_truth))
+                    print('pre: {0}'.format(val_pred))
+                    print('accuracy: {0}'.format(val_acc))
+                    if val_acc >= best:
+                        print("Current best: {0}, previous best: {1}".format(val_acc, best))
+                        model.save_weights(os.path.join(weights_path, 'weights.{}.h5'.format(subject_id)))
+                        model.save_weights(os.path.join(weights_path, 'weights.best.h5'))
+                        weights = model.get_weights()
+                        best = val_acc
         
         # acc_file.close()
         
