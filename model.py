@@ -109,16 +109,16 @@ def get_siamese_model(input_shape):
 
     # Convolutional Neural Network
     model = Sequential()
-    model.add(Conv2D(1024, (1,91), activation='relu', input_shape=input_shape,
+    model.add(Conv2D(512, (1,91), activation='relu', input_shape=input_shape,
                 kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
     # model.add(MaxPooling2D(pool_size=(1,2)))
     # model.add(ZeroPadding2D(padding=(1,0)))
-    # model.add(Conv2D(128, (3,3), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(1024, (2,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
     # model.add(MaxPooling2D(pool_size=(1,2)))
     # model.add(ZeroPadding2D(padding=(1,0)))
-    # model.add(Conv2D(64, (3,3), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(Conv2D(512, (2,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
     # model.add(MaxPooling2D(pool_size=(1,2)))
     # model.add(ZeroPadding2D(padding=(1,0)))
     # model.add(Conv2D(32, (3,3), activation='relu', kernel_initializer=initialize_weights, 

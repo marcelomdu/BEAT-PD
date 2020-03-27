@@ -6,9 +6,18 @@ import numpy as np
 
 import os
 import time
+import argparse
+
+
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lsa', action='store_true', default=False,
+            help='uses lsa path for hdf5')
+
+    args = parser.parse_args()
 
     subjects_ids = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     n_test = [[4,2,0,2,2,4,14,2,6,5,2,10,0,4,5,0],
@@ -20,7 +29,8 @@ if __name__ == '__main__':
     
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    #folder = "/home/marcon/datasets/BEAT-PD/"
+    if args.lsa:
+        folder = "/home/marcon/datasets/BEAT-PD/"
     f = hdf5_handler(folder+'training_data_PSD.hdf5','a')
 
     # Hyper parameters
