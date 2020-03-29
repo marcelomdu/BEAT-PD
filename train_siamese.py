@@ -1,6 +1,7 @@
 from utils import get_train_test, get_pairs, test_siamese
 from model import get_siamese_model
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import to_categorical
 from utils import hdf5_handler
 import numpy as np
 
@@ -46,7 +47,9 @@ if __name__ == '__main__':
     n_samples = n_test[tgt_label]
     valid_subjects = [n_samples[k] != 0 for k in range(0,len(n_samples))]
     valid_subjects_ids = list(np.compress(valid_subjects,subjects_ids))
-    # valid_subjects_ids = [1007]
+    
+    # Binary classifier test
+    valid_subjects_ids = [1004]
 
     weights_path = '/media/marcelomdu/Data/GIT_Repos/BEAT-PD/weights/'
 
@@ -65,7 +68,7 @@ if __name__ == '__main__':
         classes = list(np.compress(idx, n_labels[tgt_label]))[0]
         num_classes = len(classes)
         n_tests = np.stack(n_samples)[idx][0]
-        
+
         # Load data
         m_keys = list((f[str(subject_id)]['measurements']).keys())
         m_keys = m_keys[:int(len(m_keys)/2)]
@@ -77,6 +80,13 @@ if __name__ == '__main__':
             #data.append(np.moveaxis(f[str(subject_id)]['measurements'][str(key)][:,:],0,-1))
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
+
+        # Binary classifier test
+        labels = to_categorical(labels)[:,0]
+        classes = [0,1]
+        num_classes = 2
+        n_tests = 10
+
 
         # Initialize model
         model = get_siamese_model((200, 91, 1))
