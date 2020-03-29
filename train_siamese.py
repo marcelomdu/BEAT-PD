@@ -34,8 +34,9 @@ if __name__ == '__main__':
     f = hdf5_handler(folder+'training_data_PSD.hdf5','a')
 
     # Hyper parameters
-    evaluate_every = 50 # interval for evaluating model
+    n_cross_val = 10
     ensembles = 10
+    evaluate_every = 50 # interval for evaluating model
     #batch_size = 32
     n_iter = 500 # No. of training iterations
     best = -1
@@ -70,47 +71,54 @@ if __name__ == '__main__':
         m_keys = m_keys[:int(len(m_keys)/2)]
         data = list()
         for key in m_keys:
-            data.append(np.moveaxis(f[str(subject_id)]['measurements'][str(key)][:,:],0,-1))
+            d1 = f[str(subject_id)]['measurements'][str(key)][:,:][0,:,:]
+            d1 = d1.reshape(d1.shape[0],d1.shape[1],1)#np.moveaxis(d1,0,-1)
+            data.append(d1)
+            #data.append(np.moveaxis(f[str(subject_id)]['measurements'][str(key)][:,:],0,-1))
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
-        X_train, X_test, y_train, y_test = get_train_test(data, labels, 
-                                                        classes=classes, 
-                                                        num_samples=n_tests, 
-                                                        categorical=False, 
-                                                        th_value=200, 
-                                                        balance=True)
-        
-        # inputs, targets = get_pairs(X_train,y_train)
-        
+
         # Initialize model
-        model = get_siamese_model((200, 91, 3))
+        model = get_siamese_model((200, 91, 1))
         if best>0:
             model.set_weights(weights)
-        optimizer = Adam(lr = 0.00006)
+        optimizer = Adam(lr = 0.0001)
         model.compile(loss="binary_crossentropy",optimizer=optimizer)
-        
-        # Train
-        for i in range(0, ensembles):
-            inputs, targets = get_pairs(X_train,y_train)
-            for i in range(1, n_iter+1):
-                loss = model.train_on_batch(inputs, targets)
-                print("Train Loss: {0}".format(loss)+" Iter: {}".format(i))
-                if i % evaluate_every == 0:
-                    print("\n ------------- ")
-                    print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
-                    val_acc, val_truth, val_pred = test_siamese(model,val_data=X_test,val_labels=y_test)
-                    # acc_file.write(str(val_acc)+',')
-                    print('tru: {0}'.format(val_truth))
-                    print('pre: {0}'.format(val_pred))
-                    print('accuracy: {0}'.format(val_acc))
-                    if val_acc >= best:
-                        print("Current best: {0}, previous best: {1}".format(val_acc, best))
-                        model.save_weights(os.path.join(weights_path, 'weights.{}.h5'.format(subject_id)))
-                        model.save_weights(os.path.join(weights_path, 'weights.best.h5'))
-                        weights = model.get_weights()
-                        best = val_acc
-        
-        # acc_file.close()
+
+
+        for k in range(0,n_cross_val):
+
+            # Get train and test data
+            X_train, X_test, y_train, y_test = get_train_test(data, labels, 
+                                                            classes=classes, 
+                                                            num_samples=n_tests, 
+                                                            categorical=False, 
+                                                            th_value=200, 
+                                                            balance=True)
+                
+            # Train
+            for j in range(0, ensembles):
+                inputs, targets = get_pairs(X_train,y_train)
+                for i in range(1, n_iter+1):
+                    # print("Cross {0} - Ensemble {1} - Iter {2}".format(k,j,i))
+                    # print("\n ------------- ")
+                    loss = model.train_on_batch(inputs, targets)
+                    # print("Train Loss: {0}".format(loss)+" Iter: {}".format(i))
+                    if i % evaluate_every == 0:
+                        print("\n ------------- ")
+                        print("Cross {0} - Ensemble {1} - Iter {2}".format(k,j,i))
+                        print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
+                        val_acc, val_truth, val_pred = test_siamese(model,val_data=X_test,val_labels=y_test)
+                        print('tru: {0}'.format(val_truth))
+                        print('pre: {0}'.format(val_pred))
+                        print('accuracy: {0}'.format(val_acc))
+                        if val_acc >= best:
+                            print("Current best: {0}, previous best: {1}".format(val_acc, best))
+                            model.save_weights(os.path.join(weights_path, 'weights.{}.h5'.format(subject_id)))
+                            model.save_weights(os.path.join(weights_path, 'weights.best.h5'))
+                            weights = model.get_weights()
+                            best = val_acc
+            
         
         
 
