@@ -39,7 +39,7 @@ if __name__ == '__main__':
     ensembles = 10
     evaluate_every = 50 # interval for evaluating model
     #batch_size = 32
-    n_iter = 1000 # No. of training iterations
+    n_iter = 10000 # No. of training iterations
     best = -1
     
     # Label to be trained (On_Off = 0, Dyskinesia = 1, Tremor = 2)
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     valid_subjects_ids = list(np.compress(valid_subjects,subjects_ids))
     
     # Binary classifier test
-    valid_subjects_ids = [1004]
+    valid_subjects_ids = [1032]
 
     weights_path = '/media/marcelomdu/Data/GIT_Repos/BEAT-PD/weights/'
 
@@ -83,9 +83,9 @@ if __name__ == '__main__':
 
         # Binary classifier test
         labels = to_categorical(labels)[:,0]
-        classes = [0,1]
+        classes = [0,1] # 1 for chosen tremor type, zero for others
         num_classes = 2
-        n_tests = 10
+        n_tests = 18
 
 
         # Initialize model
@@ -118,6 +118,7 @@ if __name__ == '__main__':
                         print("\n ------------- ")
                         print("Cross {0} - Ensemble {1} - Iter {2}".format(k,j,i))
                         print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
+                        print("Loss: {0}".format(loss))
                         val_acc, val_truth, val_pred = test_siamese(model,val_data=X_test,val_labels=y_test)
                         print('tru: {0}'.format(val_truth))
                         print('pre: {0}'.format(val_pred))
