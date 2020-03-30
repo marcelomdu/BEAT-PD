@@ -33,6 +33,7 @@ def keras_corr(tensors):
     y_std = K.std(y)
     covar = K.sum(x_m*y_m)
     coef = covar/(x_std*y_std)
+    # dist = K.abs(tensors[0]-tensors[1])
 
     return coef
 

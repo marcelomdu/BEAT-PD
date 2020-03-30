@@ -35,7 +35,7 @@ if __name__ == '__main__':
     f = hdf5_handler(folder+'training_data_PSD.hdf5','a')
 
     # Hyper parameters
-    n_cross_val = 10
+    n_cross_val = 1
     ensembles = 10
     evaluate_every = 50 # interval for evaluating model
     #batch_size = 32
@@ -48,6 +48,9 @@ if __name__ == '__main__':
     valid_subjects = [n_samples[k] != 0 for k in range(0,len(n_samples))]
     valid_subjects_ids = list(np.compress(valid_subjects,subjects_ids))
     
+    # Binary classifier test
+    valid_subjects_ids = [1004]
+
     weights_path = '/media/marcelomdu/Data/GIT_Repos/BEAT-PD/weights/'
 
     # model = get_siamese_model((100, 129, 1))
@@ -78,11 +81,18 @@ if __name__ == '__main__':
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
 
+        # Binary classifier test
+        labels = to_categorical(labels)[:,0]
+        classes = [0,1]
+        num_classes = 2
+        n_tests = 10
+
+
         # Initialize model
         model = get_siamese_model((200, 91, 1))
         if best>0:
             model.set_weights(weights)
-        optimizer = Adam(lr = 0.0001)
+        optimizer = Adam(lr = 0.00006)
         model.compile(loss="binary_crossentropy",optimizer=optimizer)
 
 
