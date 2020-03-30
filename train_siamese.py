@@ -39,7 +39,7 @@ if __name__ == '__main__':
     ensembles = 10
     evaluate_every = 50 # interval for evaluating model
     #batch_size = 32
-    n_iter = 500 # No. of training iterations
+    n_iter = 1000 # No. of training iterations
     best = -1
     
     # Label to be trained (On_Off = 0, Dyskinesia = 1, Tremor = 2)

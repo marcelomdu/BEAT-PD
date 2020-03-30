@@ -23,6 +23,19 @@ def initialize_weights(shape, dtype=None):
 def initialize_bias(shape, dtype=None):
     return np.random.normal(loc=0.5, scale=1e-2, size=shape)
 
+def keras_corr(tensors):
+    # Pearson correlation coefficient
+    x = tensors[0]
+    y = tensors[1]
+    x_m = x - K.mean(x)
+    y_m = y - K.mean(y)
+    x_std = K.std(x)
+    y_std = K.std(y)
+    covar = K.sum(x_m*y_m)
+    coef = covar/(x_std*y_std)
+
+    return coef
+
 def get_zhang_model(input_shape,num_classes):
     # Model architecture
     model = Sequential()
@@ -67,45 +80,11 @@ def get_zhang_model(input_shape,num_classes):
     
     return model
 
-def get_dcnn_model(input_shape):
-    # Model architecture
-    model = Sequential()
-    model.add(Conv2D(128, (3,3), activation='relu', input_shape=input_shape, padding='same',
-                kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    model.add(MaxPooling2D(pool_size=(1,2)))
-    model.add(Conv2D(256, (3,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(256, (3,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(128, (3,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    model.add(MaxPooling2D(pool_size=(1,2)))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(64, (3,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    model.add(MaxPooling2D(pool_size=(1,2)))
-    model.add(ZeroPadding2D(padding=(2,0)))
-    model.add(Conv2D(16, (3,3), activation='relu', kernel_initializer=initialize_weights, 
-                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    model.add(Flatten())
-    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
-                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
-    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
-                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
-    model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
-                kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
-    
-    return model
-
 
 def get_siamese_model(input_shape):
     # Input tensors
     left_input = Input(input_shape)
     right_input = Input(input_shape)
-    
-    # model = get_dcnn_model(input_shape)
 
     # Convolutional Neural Network
     model = Sequential()
@@ -148,7 +127,8 @@ def get_siamese_model(input_shape):
     encoded_r = model(right_input)
 
     # Calculate encoding distances
-    L1_layer = Lambda(lambda tensors:K.abs(tensors[0]-tensors[1]))
+    #L1_layer = Lambda(lambda tensors:K.abs(tensors[0]-tensors[1]))
+    L1_layer = Lambda(keras_corr)
     L1_distance = L1_layer([encoded_l,encoded_r])
 
     # Calculate similarity score
