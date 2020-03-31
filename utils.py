@@ -27,7 +27,7 @@ def threshold_data_3D(data,labels,threshold):
             valid_labels.append(labels[i])
     return valid_data, valid_labels
 
-def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_samples=0, num_classes=5, threshold=True, th_value=100, balance=False):
+def get_train_test(data, labels, dim='3D', categorical=True, classes=[], n_tests=0, num_classes=5, threshold=True, th_value=100, balance=False):
     if threshold:
         if dim=='2D':
             valid_data, valid_labels = threshold_data_2D(data,labels,th_value)
@@ -39,7 +39,7 @@ def get_train_test(data, labels, dim='3D', categorical=True, classes=[], num_sam
     
     if balance:
         num_classes = len(classes)
-        X_train, X_test, y_train, y_test, _ = get_balanced_data(valid_data,valid_labels,classes,num_samples)
+        X_train, X_test, y_train, y_test, _ = get_balanced_data(valid_data,valid_labels,classes,n_tests)
     else:
         X_train, X_test, y_train, y_test = train_test_split(valid_data, valid_labels, test_size=0.25)
         X_train = np.stack(X_train)
@@ -108,7 +108,7 @@ def get_pairs(data_train,labels_train):
     
     return pairs, targets
 
-def get_balanced_data(data,labels,classes,num_samples):
+def get_balanced_data(data,labels,classes,n_test):
     
     X_train = dict()
     X_test = list()
@@ -125,12 +125,12 @@ def get_balanced_data(data,labels,classes,num_samples):
             cat_data[labels[i]].append(data[i])
     
     for i in classes:
-        for _ in range(0, num_samples):
+        for _ in range(0, n_test):
             k = randint(0,len(cat_data[i]))
             X = cat_data[i].pop(k)
             X_test.append(X)
             y_test.append(i)
-        for _ in range(0, min(len(cat_data[i]),100*num_samples)):
+        for _ in range(0, min(len(cat_data[i]),100*n_test)):
             k = randint(0,len(cat_data[i]))
             X = cat_data[i].pop(k)
             X_train[i].append(X)

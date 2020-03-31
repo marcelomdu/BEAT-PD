@@ -1,7 +1,6 @@
-from utils import get_train_test, get_pairs, test_siamese
-from model import get_siamese_model
+from utils import get_train_test, get_pairs
+from model import get_zhang_model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import to_categorical
 from utils import hdf5_handler
 import numpy as np
 
@@ -10,10 +9,7 @@ import time
 import argparse
 
 
-
-
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--lsa', action='store_true', default=False,
             help='uses lsa path for hdf5')
@@ -49,7 +45,7 @@ if __name__ == '__main__':
     valid_subjects_ids = list(np.compress(valid_subjects,subjects_ids))
     
     # Binary classifier test
-    valid_subjects_ids = [1032]
+    valid_subjects_ids = [1004]
 
     weights_path = '/media/marcelomdu/Data/GIT_Repos/BEAT-PD/weights/'
 
@@ -57,11 +53,10 @@ if __name__ == '__main__':
     # optimizer = Adam(lr = 0.00006)
     # model.compile(loss="binary_crossentropy",optimizer=optimizer)
 
-
     print("Start Training")
     print("-------------------------------------")
     
-    for subject_id in valid_subjects_ids:
+    for subject_id in subjects_ids:
         
         # Get valid classes for subject
         idx = [subjects_ids[i] == subject_id for i in range(0,len(subjects_ids))]
@@ -75,61 +70,43 @@ if __name__ == '__main__':
         data = list()
         for key in m_keys:
             d1 = f[str(subject_id)]['measurements'][str(key)][:,:][0,:,:]
-            d1 = d1.reshape(d1.shape[0],d1.shape[1],1)#np.moveaxis(d1,0,-1)
+            d1 = np.argmax(d1,axis=1)
+            d1 = d1/np.max(d1)
+            d1 = d1.reshape(d1.shape[0],1,1)#np.moveaxis(d1,0,-1)
             data.append(d1)
             #data.append(np.moveaxis(f[str(subject_id)]['measurements'][str(key)][:,:],0,-1))
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
-
-        # Binary classifier test
-        labels = to_categorical(labels)[:,0]
-        classes = [0,1] # 1 for chosen tremor type, zero for others
-        num_classes = 2
-        n_tests = 18
-
-
+        
         # Initialize model
-        model = get_siamese_model((200, 91, 1))
-        if best>0:
-            model.set_weights(weights)
+        model = get_zhang_model((200,1,1),num_classes)
         optimizer = Adam(lr = 0.00006)
-        model.compile(loss="binary_crossentropy",optimizer=optimizer)
+        model.compile(loss="categorical_crossentropy",
+                    optimizer=optimizer, 
+                    metrics=['accuracy'])
 
-
-        for k in range(0,n_cross_val):
-
-            # Get train and test data
-            X_train, X_test, y_train, y_test = get_train_test(data, labels, 
+        t_start = time.time()
+        X_train, X_test, y_train, y_test = get_train_test(data, labels, 
                                                             classes=classes, 
                                                             n_tests=n_tests, 
-                                                            categorical=False, 
+                                                            num_classes=num_classes,
+                                                            categorical=True, 
                                                             th_value=200, 
                                                             balance=True)
-                
-            # Train
-            for j in range(0, ensembles):
-                inputs, targets = get_pairs(X_train,y_train)
-                for i in range(1, n_iter+1):
-                    # print("Cross {0} - Ensemble {1} - Iter {2}".format(k,j,i))
-                    # print("\n ------------- ")
-                    loss = model.train_on_batch(inputs, targets)
-                    # print("Train Loss: {0}".format(loss)+" Iter: {}".format(i))
-                    if i % evaluate_every == 0:
-                        print("\n ------------- ")
-                        print("Cross {0} - Ensemble {1} - Iter {2}".format(k,j,i))
-                        print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
-                        print("Loss: {0}".format(loss))
-                        val_acc, val_truth, val_pred = test_siamese(model,val_data=X_test,val_labels=y_test)
-                        print('tru: {0}'.format(val_truth))
-                        print('pre: {0}'.format(val_pred))
-                        print('accuracy: {0}'.format(val_acc))
-                        if val_acc >= best:
-                            print("Current best: {0}, previous best: {1}".format(val_acc, best))
-                            model.save_weights(os.path.join(weights_path, 'weights.{}.h5'.format(subject_id)))
-                            model.save_weights(os.path.join(weights_path, 'weights.best.h5'))
-                            weights = model.get_weights()
-                            best = val_acc
-            
+
+        # acc_file = open(os.path.join(weights_path,'{}_acc.txt'.format(subject_id),'a'))
+
+        model.fit(X_train, y_train,
+                batch_size=batch_size,
+                epochs=epochs,
+                validation_data=(X_test,y_test),
+                shuffle=True)
+
+        scores = model.evaluate(X_test, y_test, verbose=1)
+        print('Test loss:', scores[0])
+        print('Test accuracy:', scores[1])
+        
+        # acc_file.close()
         
         
 
