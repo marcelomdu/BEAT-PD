@@ -47,6 +47,8 @@ def get_train_test(data, labels, dim='3D', categorical=True, classes=[], n_tests
     X_test = np.stack(X_test)
 
     if categorical:
+        if type(y_train) == dict:
+            X_train, y_train = dict_to_array(X_train, y_train)
         y_train = to_categorical(y_train, num_classes)
         y_test = to_categorical(y_test, num_classes)
 
@@ -139,6 +141,21 @@ def get_balanced_data(data,labels,classes,n_test):
 
     return X_train, X_test, y_train, y_test, cat_data       
 
+def dict_to_array(X,y):
+    X_list = list()
+    y_list = list()
+    for i in X.keys():
+        X_list.append(np.stack(X[i]))
+    for i in y.keys():
+        y_list.append(np.stack(y[i]))
+    X_array = X_list[0]
+    y_array = y_list[0]
+    for i in range(1,len(X_list)):
+        X_array = np.vstack((X_array,X_list[i]))
+    for i in range(1,len(X_list)):
+        y_array = np.hstack((y_array,y_list[i]))
+
+    return X_array, y_array
 
 def test_siamese(model, val_data, val_labels):
     

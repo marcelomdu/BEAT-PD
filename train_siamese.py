@@ -72,17 +72,22 @@ if __name__ == '__main__':
         data = list()
         for key in m_keys:
             d1 = f[str(subject_id)]['measurements'][str(key)][:,:][0,:,:]
-            d1 = d1.reshape(d1.shape[0],d1.shape[1],1)#np.moveaxis(d1,0,-1)
+            d1 = np.argmax(d1,axis=1)
+            d1 = d1/np.max(d1)
+            d1 = d1.reshape(d1.shape[0],1,1)
             data.append(d1)
+            # d1 = f[str(subject_id)]['measurements'][str(key)][:,:][0,:,:]
+            # d1 = d1.reshape(d1.shape[0],d1.shape[1],1)#np.moveaxis(d1,0,-1)
+            # data.append(d1)
             #data.append(np.moveaxis(f[str(subject_id)]['measurements'][str(key)][:,:],0,-1))
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
 
         # Initialize model
-        model = get_siamese_model((200, 91, 1))
+        model = get_siamese_model((150, 1, 1))
         if best>0:
             model.set_weights(weights)
-        optimizer = Adam(lr = 0.0001)
+        optimizer = Adam(lr = 0.00006)
         model.compile(loss="binary_crossentropy",optimizer=optimizer)
 
 
@@ -91,9 +96,9 @@ if __name__ == '__main__':
             # Get train and test data
             X_train, X_test, y_train, y_test = get_train_test(data, labels, 
                                                             classes=classes, 
-                                                            num_samples=n_tests, 
+                                                            n_tests=n_tests, 
                                                             categorical=False, 
-                                                            th_value=200, 
+                                                            th_value=150, 
                                                             balance=True)
                 
             # Train

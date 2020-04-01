@@ -28,34 +28,34 @@ def get_zhang_model(input_shape,num_classes):
     model = Sequential()
     model.add(Conv2D(128, (3,1), activation='relu', input_shape=input_shape, padding='same',
                 kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
-    # model.add(MaxPooling2D(pool_size=(1,1)))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(128, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(128, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(128, (5,3), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(128, (3,1), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(64, (3,1), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(32, (3,1), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(16, (3,1), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(8, (3,1), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
-    # model.add(ZeroPadding2D(padding=(2,0)))
-    # model.add(Conv2D(4, (3,1), activation='relu', kernel_initializer=initialize_weights, 
-    #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4),data_format='channels_first'))
+    model.add(MaxPooling2D(pool_size=(1,1)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(128, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(128, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(128, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(128, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(64, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(32, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(16, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(8, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
+    model.add(ZeroPadding2D(padding=(2,0)))
+    model.add(Conv2D(4, (3,1), activation='relu', kernel_initializer=initialize_weights, 
+                bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
     model.add(Flatten())
     model.add(Dense(1024, activation='sigmoid', kernel_regularizer=l2(1e-3), 
                 kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
@@ -75,18 +75,18 @@ def get_siamese_model(input_shape):
 
     # Convolutional Neural Network
     model = Sequential()
-    model.add(Conv2D(1024, (200,91), activation='relu', input_shape=input_shape,
+    model.add(Conv2D(128, (3,1), activation='relu', input_shape=input_shape,
                 kernel_initializer=initialize_weights, kernel_regularizer=l2(2e-4)))
     # model.add(MaxPooling2D(pool_size=(1,2)))
     # model.add(ZeroPadding2D(padding=(1,0)))
     # model.add(Conv2D(1024, (3,1), activation='relu', kernel_initializer=initialize_weights, 
     #             bias_initializer=initialize_bias, kernel_regularizer=l2(2e-4)))
     model.add(Flatten())
-    model.add(Dense(512, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+    model.add(Dense(64, activation='sigmoid', kernel_regularizer=l2(1e-3), 
                 kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
-    model.add(Dense(256, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+    model.add(Dense(32, activation='sigmoid', kernel_regularizer=l2(1e-3), 
                 kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
-    model.add(Dense(128, activation='sigmoid', kernel_regularizer=l2(1e-3), 
+    model.add(Dense(16, activation='sigmoid', kernel_regularizer=l2(1e-3), 
                 kernel_initializer=initialize_weights, bias_initializer=initialize_bias))
 
     # Feature vectors

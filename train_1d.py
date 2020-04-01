@@ -34,7 +34,8 @@ if __name__ == '__main__':
     n_cross_val = 1
     ensembles = 10
     evaluate_every = 50 # interval for evaluating model
-    #batch_size = 32
+    batch_size = 100
+    epochs = 1000
     n_iter = 10000 # No. of training iterations
     best = -1
     
@@ -72,9 +73,8 @@ if __name__ == '__main__':
             d1 = f[str(subject_id)]['measurements'][str(key)][:,:][0,:,:]
             d1 = np.argmax(d1,axis=1)
             d1 = d1/np.max(d1)
-            d1 = d1.reshape(d1.shape[0],1,1)#np.moveaxis(d1,0,-1)
+            d1 = d1.reshape(d1.shape[0],1,1)
             data.append(d1)
-            #data.append(np.moveaxis(f[str(subject_id)]['measurements'][str(key)][:,:],0,-1))
         labels = f[str(subject_id)]['labels'][:][:,tgt_label]
         t_start = time.time()
         
