@@ -88,7 +88,7 @@ def load_data(path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/",
     ft_1 = data['ft_matrix{}'.format(n_ft1)][()]
     ft_2 = data['ft_matrix{}'.format(n_ft2)][()]
     if (labels.shape[1] > 0):
-        y = torch.LongTensor(labels)
+        y = torch.LongTensor(np.where(labels)[1])
         if (ft_1.shape[1] > 0) & (ft_2.shape[1] > 0):
             x = torch.FloatTensor(np.hstack((ft_1,ft_2))) # nodes' features matrix N x F
         elif (ft_1.shape[1] > 0):
