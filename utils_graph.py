@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
 import torch
+import h5py
+import contextlib
 
 from scipy.sparse.linalg.eigen.arpack import eigsh
 
@@ -15,6 +17,7 @@ def hdf5_handler(filename, mode="r"):
     with contextlib.closing(h5py.h5f.open(filename.encode(), fapl=propfaid)) as fid:
         return h5py.File(fid, mode)
 
+
 def get_adjacency(cn_matrix, threshold):
     mask = (cn_matrix > np.percentile(cn_matrix, threshold)).astype(np.uint8)
     nodes, neighbors = np.nonzero(mask)
@@ -27,63 +30,16 @@ def get_adjacency(cn_matrix, threshold):
                 sparse_mask[node].append(neighbors[i])
     return mask, sparse_mask
 
-def encode_onehot(labels):
-    classes = set(labels)
-    classes_dict = {c: np.identity(len(classes))[i, :] for i, c in
-                    enumerate(classes)}
-    labels_onehot = np.array(list(map(classes_dict.get, labels)),
-                             dtype=np.int32)
-    return labels_onehot
-
-
-def load_data_2(path="../data/cora/", dataset="cora"):
-    """Load citation network dataset (cora only for now)"""
-    print('Loading {} dataset...'.format(dataset))
-
-    idx_features_labels = np.genfromtxt("{}{}.content".format(path, dataset),
-                                        dtype=np.dtype(str))
-    features = sp.csr_matrix(idx_features_labels[:, 1:-1], dtype=np.float32)
-    labels = encode_onehot(idx_features_labels[:, -1])
-
-    # build graph
-    idx = np.array(idx_features_labels[:, 0], dtype=np.int32)
-    idx_map = {j: i for i, j in enumerate(idx)}
-    edges_unordered = np.genfromtxt("{}{}.cites".format(path, dataset),
-                                    dtype=np.int32)
-    edges = np.array(list(map(idx_map.get, edges_unordered.flatten())),
-                     dtype=np.int32).reshape(edges_unordered.shape)
-    adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
-                        shape=(labels.shape[0], labels.shape[0]),
-                        dtype=np.float32)
-
-    # build symmetric adjacency matrix
-    adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
-
-    features = normalize(features)
-    adj = normalize(adj + sp.eye(adj.shape[0]))
-
-    idx_train = range(140)
-    idx_val = range(200, 500)
-    idx_test = range(500, 1500)
-
-    features = torch.FloatTensor(np.array(features.todense()))
-    labels = torch.LongTensor(np.where(labels)[1])
-    adj = sparse_mx_to_torch_sparse_tensor(adj)
-
-    idx_train = torch.LongTensor(idx_train)
-    idx_val = torch.LongTensor(idx_val)
-    idx_test = torch.LongTensor(idx_test)
-
-    return adj, features, labels, idx_train, idx_val, idx_test
 
 def load_data(path="../Datasets/", study="CIS", subfolder=None, subject="1004", label="tre", cn_type="1"):
+
+    path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/"
 
     if subfolder is not None:
         file = path+study+"/Train/training_data/"+subfolder+"/training_data_graphs.hdf5"
     else:
         file = path+study+"/Train/training_data/"+"training_data_graphs.hdf5"
     f = hdf5_handler(file,'r')
-    g_list = []
 
     if label == "dys":
         n_alvo = '1'
@@ -118,10 +74,11 @@ def load_data(path="../Datasets/", study="CIS", subfolder=None, subject="1004", 
     threshold = 20
 
     adj, _ = get_adjacency(data['cn_matrix{}'.format(cn_type)][()], 100-threshold)
+    idx = torch.LongTensor(np.vstack(np.nonzero(adj)))
+    n_adj = torch.LongTensor(np.ones(idx.shape[1]))
+    adj = torch.sparse.LongTensor(idx,n_adj,torch.Size([adj.shape[0],adj.shape[1]]))
     
-    edge_index = torch.tensor(np.vstack(list(np.nonzero(adj))), dtype=torch.long)
-    g = Data(x=x,edge_index=edge_index,y=y)
-    g_list.append(g)
+    return adj, x, y
 
 
 def normalize(mx):
@@ -140,16 +97,6 @@ def accuracy(output, labels):
     correct = correct.sum()
     return correct / len(labels)
 
-
-def sparse_mx_to_torch_sparse_tensor(sparse_mx):
-    """Convert a scipy sparse matrix to a torch sparse tensor."""
-    sparse_mx = sparse_mx.tocoo().astype(np.float32)
-    indices = torch.from_numpy(
-        np.vstack((sparse_mx.row, sparse_mx.col)).astype(np.int64))
-    values = torch.from_numpy(sparse_mx.data)
-    shape = torch.Size(sparse_mx.shape)
-    return torch.sparse.FloatTensor(indices, values, shape)
-
 def chebyshev_polynomials(adj, k):
     """Calculate Chebyshev polynomials up to order k. Return a list of sparse matrices (tuple representation)."""
     print("Calculating Chebyshev polynomials up to order {}...".format(k))
@@ -167,7 +114,7 @@ def chebyshev_polynomials(adj, k):
         s_lap = sp.csr_matrix(scaled_lap, copy=True)
         return 2 * s_lap.dot(t_k_minus_one) - t_k_minus_two
 
-    for i in range(2, k+1):
+    for _ in range(2, k+1):
         t_k.append(chebyshev_recurrence(t_k[-1], t_k[-2], scaled_laplacian))
 
     return sparse_to_tuple(t_k)

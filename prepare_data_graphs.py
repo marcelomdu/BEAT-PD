@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy import signal
 from numba import jit, njit
-from utils import hdf5_handler
+from utils_graph import hdf5_handler
 from scipy.stats import pearsonr
 from sklearn.preprocessing import OneHotEncoder
 

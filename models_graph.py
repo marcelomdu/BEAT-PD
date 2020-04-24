@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from layers import GraphConvolution, ChebyGraphConvolution
+from layers_graph import GraphConvolution, ChebyGraphConvolution
 
 from torch_geometric.nn import ChebConv
 from torch_geometric.data import Data

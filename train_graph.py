@@ -9,8 +9,8 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from utils import load_data, accuracy, chebyshev_polynomials
-from models import GCN, ChebyGCN, GeoChebyConv
+from utils_graph import load_data, accuracy, chebyshev_polynomials
+from models_graph import GCN, ChebyGCN, GeoChebyConv
 
 # Training settings
 parser = argparse.ArgumentParser()
