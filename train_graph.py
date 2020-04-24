@@ -29,9 +29,17 @@ parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
-parser.add_argument('--model', default='gcn', help='gcn model used (default: gcn_cheby, '
+parser.add_argument('--model', default='gcn_cheby', help='gcn model used (default: gcn_cheby, '
                                                              'uses chebyshev polynomials, '
                                                              'options: gcn, gcn_cheby, dense )')
+parser.add_argument('--study', type=str, default="CIS",
+                    help='Study name')
+parser.add_argument('--condition', type=str, default="tre",
+                    help='Condition for training (med: medication, dys: dyskinesia, tre: tremor)')
+parser.add_argument('--cn_type', type=int, default=1,
+                    help='Connectivity to be used (1:PSD cross-correlation, 2:PSD derivative cross-correlation, 3:PSD 2nd derivative cross-correlation)')
+parser.add_argument('--cn_threshold', type=float, default=20,
+                    help='Threshold to be used for the connectivity matrix')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -41,88 +49,103 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-# Load data
-adj, features, labels, idx_train, idx_val, idx_test = load_data()
+study = args.study
+cn_type = args.cn_type
+cn_threshold = args.cn_threshold
+label=args.condition
 
-# Model and optimizer
-if args.model == 'gcn':
-    model = GCN(nfeat=features.shape[1],
-                nhid=args.hidden,
-                nclass=labels.max().item() + 1,
-                dropout=args.dropout)
-elif args.model == 'gcn_cheby':
-    adj = adj.to_dense().numpy()
-    adj_temp = chebyshev_polynomials(adj, 3)
-    adj = torch.Tensor(len(adj_temp),adj.shape[0],adj.shape[1])
-    for i in range(len(adj_temp)):
-        adj[i] = torch.sparse.FloatTensor(torch.LongTensor(adj_temp[i][0]).t(), 
-                                            torch.FloatTensor(adj_temp[i][1]), 
-                                            torch.Size(adj_temp[i][2])).to_dense()
-    model = ChebyGCN(nfeat=features.shape[1],
-                nhid=args.hidden,
-                nclass=labels.max().item() + 1,
-                max_degree=3,
-                dropout=args.dropout)
-elif args.model == 'geo_gcn_cheby':
-    model = GeoChebyConv(nfeat=features.shape[1],
-                nhid=args.hidden,
-                nclass=labels.max().item() + 1,
-                dropout=args.dropout)
-optimizer = optim.Adam(model.parameters(),
-                       lr=args.lr, weight_decay=args.weight_decay)
+if args.study == "CIS":
+    path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
+    subjects_list = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1043,1046,1048,1049] #1051,1044,1039
 
-if args.cuda:
-    model.cuda()
-    features = features.cuda()
-    adj = adj.cuda()
-    labels = labels.cuda()
-    idx_train = idx_train.cuda()
-    idx_val = idx_val.cuda()
-    idx_test = idx_test.cuda()
+if args.study == "REAL":
+    path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
+    subjects_list = ['hbv012', 'hbv013', 'hbv014', 'hbv017', 'hbv018', 'hbv022', 'hbv023', 'hbv038', 'hbv043', 'hbv051', 'hbv054', 'hbv077']
+
+for subject in subjects_list:
+
+    # Load data
+    adj, features, labels, idx_train, idx_val, idx_test = load_data(path=path,subject=str(subject),label=label,cn_type=cn_type,threshold=cn_threshold)
+
+    # Model and optimizer
+    if args.model == 'gcn':
+        model = GCN(nfeat=features.shape[1],
+                    nhid=args.hidden,
+                    nclass=labels.max().item() + 1,
+                    dropout=args.dropout)
+    elif args.model == 'gcn_cheby':
+        adj = adj.to_dense().numpy()
+        adj_temp = chebyshev_polynomials(adj, 3)
+        adj = torch.Tensor(len(adj_temp),adj.shape[0],adj.shape[1])
+        for i in range(len(adj_temp)):
+            adj[i] = torch.sparse.FloatTensor(torch.LongTensor(adj_temp[i][0]).t(), 
+                                                torch.FloatTensor(adj_temp[i][1]), 
+                                                torch.Size(adj_temp[i][2])).to_dense()
+        model = ChebyGCN(nfeat=features.shape[1],
+                    nhid=args.hidden,
+                    nclass=labels.max().item() + 1,
+                    max_degree=3,
+                    dropout=args.dropout)
+    elif args.model == 'geo_gcn_cheby':
+        model = GeoChebyConv(nfeat=features.shape[1],
+                    nhid=args.hidden,
+                    nclass=labels.max().item() + 1,
+                    dropout=args.dropout)
+    optimizer = optim.Adam(model.parameters(),
+                        lr=args.lr, weight_decay=args.weight_decay)
+
+    if args.cuda:
+        model.cuda()
+        features = features.cuda()
+        adj = adj.cuda()
+        labels = labels.cuda()
+        idx_train = idx_train.cuda()
+        idx_val = idx_val.cuda()
+        idx_test = idx_test.cuda()
 
 
-def train(epoch):
-    t = time.time()
-    model.train()
-    optimizer.zero_grad()
-    output = model(features, adj)
-    loss_train = F.nll_loss(output[idx_train], labels[idx_train])
-    acc_train = accuracy(output[idx_train], labels[idx_train])
-    loss_train.backward()
-    optimizer.step()
+    def train(epoch):
+        t = time.time()
+        model.train()
+        optimizer.zero_grad()
+        output = model(features, adj)
+        loss_train = F.nll_loss(output[idx_train], labels[idx_train])
+        acc_train = accuracy(output[idx_train], labels[idx_train])
+        loss_train.backward()
+        optimizer.step()
 
-    if not args.fastmode:
-        # Evaluate validation set performance separately,
-        # deactivates dropout during validation run.
+        if not args.fastmode:
+            # Evaluate validation set performance separately,
+            # deactivates dropout during validation run.
+            model.eval()
+            output = model(features, adj)
+
+        loss_val = F.nll_loss(output[idx_val], labels[idx_val])
+        acc_val = accuracy(output[idx_val], labels[idx_val])
+        # print('Epoch: {:04d}'.format(epoch+1),
+        #     'loss_train: {:.4f}'.format(loss_train.item()),
+        #     'acc_train: {:.4f}'.format(acc_train.item()),
+        #     'loss_val: {:.4f}'.format(loss_val.item()),
+        #     'acc_val: {:.4f}'.format(acc_val.item()),
+        #     'time: {:.4f}s'.format(time.time() - t))
+
+
+    def test():
         model.eval()
         output = model(features, adj)
-
-    loss_val = F.nll_loss(output[idx_val], labels[idx_val])
-    acc_val = accuracy(output[idx_val], labels[idx_val])
-    print('Epoch: {:04d}'.format(epoch+1),
-          'loss_train: {:.4f}'.format(loss_train.item()),
-          'acc_train: {:.4f}'.format(acc_train.item()),
-          'loss_val: {:.4f}'.format(loss_val.item()),
-          'acc_val: {:.4f}'.format(acc_val.item()),
-          'time: {:.4f}s'.format(time.time() - t))
+        loss_test = F.nll_loss(output[idx_test], labels[idx_test])
+        acc_test = accuracy(output[idx_test], labels[idx_test])
+        print("Test set results for {}:".format(subject),
+            "loss= {:.4f}".format(loss_test.item()),
+            "accuracy= {:.4f}".format(acc_test.item()))
 
 
-def test():
-    model.eval()
-    output = model(features, adj)
-    loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-    acc_test = accuracy(output[idx_test], labels[idx_test])
-    print("Test set results:",
-          "loss= {:.4f}".format(loss_test.item()),
-          "accuracy= {:.4f}".format(acc_test.item()))
+    # Train model
+    t_total = time.time()
+    for epoch in range(args.epochs):
+        train(epoch)
+    # print("Optimization Finished!")
+    # print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
-
-# Train model
-t_total = time.time()
-for epoch in range(args.epochs):
-    train(epoch)
-print("Optimization Finished!")
-print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
-
-# Testing
-test()
+    # Testing
+    test()

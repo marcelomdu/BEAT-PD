@@ -56,18 +56,10 @@ def get_balanced_indexes(labels,n_val=2):
 
     return idx_train, idx_val, idx_test
 
-def load_data(path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/", 
-            study="CIS", 
-            subfolder=None, 
-            subject="1004", 
-            label="tre", 
-            cn_type="1",
-            threshold=20):
+def load_data(path, subject, label, cn_type, threshold):
 
-    if subfolder is not None:
-        file = path+study+"/Train/training_data/"+subfolder+"/training_data_graphs.hdf5"
-    else:
-        file = path+study+"/Train/training_data/"+"training_data_graphs.hdf5"
+    file = path+"training_data_graphs.hdf5"
+
     f = hdf5_handler(file,'r')
 
     if label == "dys":
@@ -87,13 +79,13 @@ def load_data(path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/",
     labels = data['ft_matrix{}'.format(n_alvo)][()]
     ft_1 = data['ft_matrix{}'.format(n_ft1)][()]
     ft_2 = data['ft_matrix{}'.format(n_ft2)][()]
-    if (labels.shape[1] > 0):
+    if (labels.shape[1] > 1):
         y = torch.LongTensor(np.where(labels)[1])
-        if (ft_1.shape[1] > 0) & (ft_2.shape[1] > 0):
+        if (ft_1.shape[1] > 1) & (ft_2.shape[1] > 1):
             x = torch.FloatTensor(np.hstack((ft_1,ft_2))) # nodes' features matrix N x F
-        elif (ft_1.shape[1] > 0):
+        elif (ft_1.shape[1] > 1):
             x = torch.FloatTensor(ft_1)
-        elif (ft_2.shape[1] > 0):
+        elif (ft_2.shape[1] > 1):
             x = torch.FloatTensor(ft_2)
         else:
             x = torch.FloatTensor(labels)
@@ -126,7 +118,7 @@ def accuracy(output, labels):
 
 def chebyshev_polynomials(adj, k):
     """Calculate Chebyshev polynomials up to order k. Return a list of sparse matrices (tuple representation)."""
-    print("Calculating Chebyshev polynomials up to order {}...".format(k))
+    # print("Calculating Chebyshev polynomials up to order {}...".format(k))
 
     adj_normalized = normalize_adj(adj)
     laplacian = sp.eye(adj.shape[0]) - adj_normalized
