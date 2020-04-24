@@ -3,6 +3,7 @@ import scipy.sparse as sp
 import torch
 import h5py
 import contextlib
+from numpy.random import randint
 
 from scipy.sparse.linalg.eigen.arpack import eigsh
 
@@ -17,7 +18,6 @@ def hdf5_handler(filename, mode="r"):
     with contextlib.closing(h5py.h5f.open(filename.encode(), fapl=propfaid)) as fid:
         return h5py.File(fid, mode)
 
-
 def get_adjacency(cn_matrix, threshold):
     mask = (cn_matrix > np.percentile(cn_matrix, threshold)).astype(np.uint8)
     nodes, neighbors = np.nonzero(mask)
@@ -30,10 +30,39 @@ def get_adjacency(cn_matrix, threshold):
                 sparse_mask[node].append(neighbors[i])
     return mask, sparse_mask
 
+def get_balanced_indexes(labels,n_val=2):
 
-def load_data(path="../Datasets/", study="CIS", subfolder=None, subject="1004", label="tre", cn_type="1"):
+    idx_train = list()
+    idx_val = list()
+    idx_test = list()
 
-    path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/"
+    id_labels = np.unique(labels)
+    idx_labels = {i:[] for i in id_labels}
+    n_labels = {i:[] for i in id_labels}
+    for i in id_labels:
+        idx_labels[i] = np.where(labels==i)[0].tolist()
+        n_labels[i] = len(idx_labels[i])
+
+    for j in id_labels:
+        if n_labels[j] > n_val*4:
+            for i in range(0,n_val):
+                idx_val.append(idx_labels[j].pop(randint(0,len(idx_labels[j]))))
+                idx_test.append(idx_labels[j].pop(randint(0,len(idx_labels[j]))))
+        idx_train = np.hstack((idx_train,idx_labels[j])).astype(np.uint8)
+
+    idx_train = torch.LongTensor(idx_train.tolist())
+    idx_val = torch.LongTensor(idx_val)
+    idx_test = torch.LongTensor(idx_test)
+
+    return idx_train, idx_val, idx_test
+
+def load_data(path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/", 
+            study="CIS", 
+            subfolder=None, 
+            subject="1004", 
+            label="tre", 
+            cn_type="1",
+            threshold=20):
 
     if subfolder is not None:
         file = path+study+"/Train/training_data/"+subfolder+"/training_data_graphs.hdf5"
@@ -71,15 +100,14 @@ def load_data(path="../Datasets/", study="CIS", subfolder=None, subject="1004", 
     else:
         raise Exception("Invalid target label")
     
-    threshold = 20
-
     adj, _ = get_adjacency(data['cn_matrix{}'.format(cn_type)][()], 100-threshold)
-    idx = torch.LongTensor(np.vstack(np.nonzero(adj)))
-    n_adj = torch.LongTensor(np.ones(idx.shape[1]))
-    adj = torch.sparse.LongTensor(idx,n_adj,torch.Size([adj.shape[0],adj.shape[1]]))
-    
-    return adj, x, y
+    idx = torch.from_numpy(np.vstack(np.nonzero(adj)))
+    n_adj = torch.from_numpy(np.ones(idx.shape[1]).astype(np.double)).to(dtype=torch.float32)
+    adj = torch.sparse.FloatTensor(idx,n_adj,torch.Size([adj.shape[0],adj.shape[1]]))
 
+    idx_train, idx_val, idx_test = get_balanced_indexes(data['labels'][:,int(n_alvo)-1])
+    
+    return adj, x, y, idx_train, idx_val, idx_test
 
 def normalize(mx):
     """Row-normalize sparse matrix"""
@@ -89,7 +117,6 @@ def normalize(mx):
     r_mat_inv = sp.diags(r_inv)
     mx = r_mat_inv.dot(mx)
     return mx
-
 
 def accuracy(output, labels):
     preds = output.max(1)[1].type_as(labels)

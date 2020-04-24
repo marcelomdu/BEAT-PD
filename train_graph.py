@@ -29,7 +29,7 @@ parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
-parser.add_argument('--model', default='gcn_cheby', help='gcn model used (default: gcn_cheby, '
+parser.add_argument('--model', default='gcn', help='gcn model used (default: gcn_cheby, '
                                                              'uses chebyshev polynomials, '
                                                              'options: gcn, gcn_cheby, dense )')
 
