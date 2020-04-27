@@ -31,10 +31,10 @@ def get_adjacency(cn_matrix, threshold):
                 sparse_mask[node].append(neighbors[i])
     return mask, sparse_mask
 
-def get_balanced_indexes(labels,n_val=2):
+def get_balanced_indexes(labels,n_val=4):
 
     idx_train = list()
-    idx_val = list()
+    # idx_val = list()
     idx_test = list()
 
     id_labels = np.unique(labels)
@@ -45,17 +45,17 @@ def get_balanced_indexes(labels,n_val=2):
         n_labels[i] = len(idx_labels[i])
 
     for j in id_labels:
-        if n_labels[j] > n_val*4:
+        if n_labels[j] > n_val*2:
             for i in range(0,n_val):
-                idx_val.append(idx_labels[j].pop(randint(0,len(idx_labels[j]))))
+                # idx_val.append(idx_labels[j].pop(randint(0,len(idx_labels[j]))))
                 idx_test.append(idx_labels[j].pop(randint(0,len(idx_labels[j]))))
         idx_train = np.hstack((idx_train,idx_labels[j])).astype(np.uint8)
 
     idx_train = torch.LongTensor(idx_train.tolist())
-    idx_val = torch.LongTensor(idx_val)
+    # idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
 
-    return idx_train, idx_val, idx_test
+    return idx_train, idx_test
 
 def load_data(path, subject, label, cn_type, ft_type, threshold):
 
@@ -91,9 +91,9 @@ def load_data(path, subject, label, cn_type, ft_type, threshold):
     n_adj = torch.from_numpy(np.ones(idx.shape[1]).astype(np.double)).to(dtype=torch.float32)
     adj = torch.sparse.FloatTensor(idx,n_adj,torch.Size([adj.shape[0],adj.shape[1]]))
 
-    idx_train, idx_val, idx_test = get_balanced_indexes(data['labels'][:,int(n_alvo)-1])
+    idx_train, idx_test = get_balanced_indexes(data['labels'][:,int(n_alvo)-1])
     
-    return adj, x, y, idx_train, idx_val, idx_test
+    return adj, x, y, idx_train, idx_test
 
 def normalize(mx):
     """Row-normalize sparse matrix"""

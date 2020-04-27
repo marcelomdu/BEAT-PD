@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from layers_graph import GraphConvolution, ChebyGraphConvolution
 
-from torch_geometric.nn import ChebConv
+from torch_geometric.nn import ChebConv, SAGEConv
 from torch_geometric.data import Data
 
 class GCN(nn.Module):
@@ -49,4 +49,21 @@ class GeoChebyConv(nn.Module):
         x = F.relu(self.gc1(data['x'], edge_index=data['edge_index'], edge_weight=data['edge_attr']))
         x = F.dropout(x, self.dropout, training=self.training)
         x = self.gc2(x, edge_index=data['edge_index'], edge_weight=data['edge_attr'])
+        return F.log_softmax(x, dim=1)
+
+
+class GeoSAGEConv(nn.Module):
+    def __init__(self, nfeat, nhid, nclass, dropout):
+        super(GeoSAGEConv,self).__init__()
+
+        nclass = int(nclass)
+        self.gc1 = SAGEConv(nfeat, nhid, normalize=True)
+        self.gc2 = SAGEConv(nhid, nclass, normalize=True)
+        self.dropout = dropout
+
+    def forward(self, features, adj):
+        data = Data(x=features, edge_index=adj._indices())
+        x = F.relu(self.gc1(data['x'], edge_index=data['edge_index']))
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.gc2(x, edge_index=data['edge_index'])
         return F.log_softmax(x, dim=1)

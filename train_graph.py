@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from utils_graph import load_data, accuracy, chebyshev_polynomials
-from models_graph import GCN, ChebyGCN, GeoChebyConv
+from models_graph import GCN, ChebyGCN, GeoChebyConv, GeoSAGEConv
 
 # Training settings
 parser = argparse.ArgumentParser()
@@ -59,7 +59,7 @@ label=args.condition
 
 if study == "CIS":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    subjects_list = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1043,1046,1048,1049] #1051,1044,1039
+    subjects_list = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1046,1048,1049] #1051,1044,1039,1043
 
 if study == "REAL":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
@@ -68,7 +68,7 @@ if study == "REAL":
 for subject in subjects_list:
 
     # Load data
-    adj, features, labels, idx_train, idx_val, idx_test = load_data(path=path,subject=str(subject),label=label,cn_type=cn_type,ft_type=ft_type,threshold=cn_threshold)
+    adj, features, labels, idx_train, idx_test = load_data(path=path,subject=str(subject),label=label,cn_type=cn_type,ft_type=ft_type,threshold=cn_threshold)
     
     # Model and optimizer
     if args.model == 'gcn':
@@ -94,6 +94,12 @@ for subject in subjects_list:
                     nhid=args.hidden,
                     nclass=labels.max().item() + 1,
                     dropout=args.dropout)
+    elif args.model == 'geo_sage':
+        model = GeoSAGEConv(nfeat=features.shape[1],
+                    nhid=args.hidden,
+                    nclass=labels.max().item() + 1,
+                    dropout=args.dropout)
+
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, weight_decay=args.weight_decay)
 
@@ -103,7 +109,7 @@ for subject in subjects_list:
         adj = adj.cuda()
         labels = labels.cuda()
         idx_train = idx_train.cuda()
-        idx_val = idx_val.cuda()
+        # idx_val = idx_val.cuda()
         idx_test = idx_test.cuda()
 
 
@@ -123,8 +129,8 @@ for subject in subjects_list:
             model.eval()
             output = model(features, adj)
 
-        loss_val = F.nll_loss(output[idx_val], labels[idx_val])
-        acc_val = accuracy(output[idx_val], labels[idx_val])
+        # loss_val = F.nll_loss(output[idx_val], labels[idx_val])
+        # acc_val = accuracy(output[idx_val], labels[idx_val])
         # print('Epoch: {:04d}'.format(epoch+1),
         #     'loss_train: {:.4f}'.format(loss_train.item()),
         #     'acc_train: {:.4f}'.format(acc_train.item()),
