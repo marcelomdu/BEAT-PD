@@ -38,6 +38,8 @@ parser.add_argument('--condition', type=str, default="tre",
                     help='Condition for training (med: medication, dys: dyskinesia, tre: tremor)')
 parser.add_argument('--cn_type', type=int, default=1,
                     help='Connectivity to be used (1:PSD cross-correlation, 2:PSD derivative cross-correlation, 3:PSD 2nd derivative cross-correlation)')
+parser.add_argument('--ft_type', type=int, default=4,
+                    help='Features to be used (1:PSDs, 2:PSDs first derivative, 3:PSDs 2nd derivative, 4:Signal statistical features)')
 parser.add_argument('--cn_threshold', type=float, default=20,
                     help='Threshold to be used for the connectivity matrix')
 
@@ -51,22 +53,23 @@ if args.cuda:
 
 study = args.study
 cn_type = args.cn_type
+ft_type = args.ft_type
 cn_threshold = args.cn_threshold
 label=args.condition
 
-if args.study == "CIS":
+if study == "CIS":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
     subjects_list = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1043,1046,1048,1049] #1051,1044,1039
 
-if args.study == "REAL":
+if study == "REAL":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
-    subjects_list = ['hbv012', 'hbv013', 'hbv014', 'hbv017', 'hbv018', 'hbv022', 'hbv023', 'hbv038', 'hbv043', 'hbv051', 'hbv054', 'hbv077']
+    subjects_list = ['hbv012', 'hbv013', 'hbv022', 'hbv023', 'hbv038','hbv054']#'hbv017', 'hbv051',  'hbv077', 'hbv043', 'hbv014', 'hbv018', 
 
 for subject in subjects_list:
 
     # Load data
-    adj, features, labels, idx_train, idx_val, idx_test = load_data(path=path,subject=str(subject),label=label,cn_type=cn_type,threshold=cn_threshold)
-
+    adj, features, labels, idx_train, idx_val, idx_test = load_data(path=path,subject=str(subject),label=label,cn_type=cn_type,ft_type=ft_type,threshold=cn_threshold)
+    
     # Model and optimizer
     if args.model == 'gcn':
         model = GCN(nfeat=features.shape[1],
@@ -137,7 +140,8 @@ for subject in subjects_list:
         acc_test = accuracy(output[idx_test], labels[idx_test])
         print("Test set results for {}:".format(subject),
             "loss= {:.4f}".format(loss_test.item()),
-            "accuracy= {:.4f}".format(acc_test.item()))
+            "accuracy= {:.4f}".format(acc_test.item()),
+            "test_labels= {}".format(labels[idx_test]))
 
 
     # Train model

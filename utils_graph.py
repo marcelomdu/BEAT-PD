@@ -4,6 +4,7 @@ import torch
 import h5py
 import contextlib
 from numpy.random import randint
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from scipy.sparse.linalg.eigen.arpack import eigsh
 
@@ -56,39 +57,32 @@ def get_balanced_indexes(labels,n_val=2):
 
     return idx_train, idx_val, idx_test
 
-def load_data(path, subject, label, cn_type, threshold):
+def load_data(path, subject, label, cn_type, ft_type, threshold):
 
-    file = path+"training_data_graphs.hdf5"
+    file = path+"training_data_graphs_2.hdf5"
 
     f = hdf5_handler(file,'r')
 
     if label == "dys":
-        n_alvo = '1'
-        n_ft1 = '2'
-        n_ft2 = '3'
+        n_alvo = 1
     if label == "med":
-        n_alvo = '2'
-        n_ft1 = '3'
-        n_ft2 = '1'
+        n_alvo = 2
     if label == "tre":
-        n_alvo = '3'
-        n_ft1 = '1'
-        n_ft2 = '2'
+        n_alvo = 3
 
     data = f[str(subject)]
-    labels = data['ft_matrix{}'.format(n_alvo)][()]
-    ft_1 = data['ft_matrix{}'.format(n_ft1)][()]
-    ft_2 = data['ft_matrix{}'.format(n_ft2)][()]
+
+    scaler = StandardScaler()
+    features = data['ft_matrix{}'.format(ft_type)][()]
+    features = scaler.fit_transform(features)
+
+    enc = OneHotEncoder(sparse=False)
+    labels = data['labels'][()][:,n_alvo-1].reshape(-1,1)
+    labels = enc.fit_transform(labels)
+
     if (labels.shape[1] > 1):
         y = torch.LongTensor(np.where(labels)[1])
-        if (ft_1.shape[1] > 1) & (ft_2.shape[1] > 1):
-            x = torch.FloatTensor(np.hstack((ft_1,ft_2))) # nodes' features matrix N x F
-        elif (ft_1.shape[1] > 1):
-            x = torch.FloatTensor(ft_1)
-        elif (ft_2.shape[1] > 1):
-            x = torch.FloatTensor(ft_2)
-        else:
-            x = torch.FloatTensor(labels)
+        x = torch.FloatTensor(features)
     else:
         raise Exception("Invalid target label")
     
@@ -114,7 +108,7 @@ def accuracy(output, labels):
     preds = output.max(1)[1].type_as(labels)
     correct = preds.eq(labels).double()
     correct = correct.sum()
-    return correct / len(labels)
+    return correct/len(labels)
 
 def chebyshev_polynomials(adj, k):
     """Calculate Chebyshev polynomials up to order k. Return a list of sparse matrices (tuple representation)."""

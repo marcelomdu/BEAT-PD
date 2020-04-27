@@ -5,16 +5,15 @@ import numpy as np
 from scipy import signal
 from numba import jit, njit
 from utils_graph import hdf5_handler
-from scipy.stats import pearsonr
-from sklearn.preprocessing import OneHotEncoder
+from scipy.stats import pearsonr, describe, iqr, entropy, tsem, median_absolute_deviation
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--ids_file', type=str, default=None,
-                    help='.csv file with measurements IDs')
-parser.add_argument('--folder', type=str, default=None,
-                    help='Folder with the measurements files and ids_file')
-parser.add_argument('--prefix', type=str, default=None, 
+parser.add_argument('--study', type=str, default="CIS",
+                    help='Study name')
+parser.add_argument('--prefix', type=str, default="training_data_graphs_2", 
                     help='HDF5 destination file name')
+
 
 @njit
 def calc_mag_diff(x):
@@ -49,6 +48,19 @@ def load_spectrums(x,folder,interval=5):
         subj = subj[['X','Y','Z']]
     subj['mag_diff'] = calc_mag_diff(subj.values[:,0:3])
     subj['mag_diff_f'] = signal.sosfilt(sos,subj['mag_diff'].values)
+    
+    t_describe = describe(subj['mag_diff_f'])
+    t_min = t_describe[1][0]
+    t_max = t_describe[1][1]
+    t_mean = t_describe[2]
+    t_var = t_describe[3]
+    t_skew = t_describe[4]
+    t_kurtosis = t_describe[5]
+    t_iqr = iqr(subj['mag_diff_f'])
+    # t_entropy = entropy(subj['mag_diff_f'])
+    t_sem = tsem(subj['mag_diff_f'])
+    t_mad = median_absolute_deviation(subj['mag_diff_f'])
+
     nperseg = samples
     tau = nperseg/5
     window = signal.windows.exponential(nperseg,tau=tau)
@@ -56,14 +68,18 @@ def load_spectrums(x,folder,interval=5):
     # Calculates the Power Spectrum Density by Welch's method and its 1st and 2nd deltas
     if subj['mag_diff_f'].values.shape[0] > samples:
         _, psd = signal.welch(subj['mag_diff_f'].values,fs=50,window=window,detrend='linear')
-        max_psd = np.max(psd)
-        psd = psd/max_psd
+        f_psd_max = np.max(psd)
+        f_psd_area = np.sum(psd)
+        psd = psd/f_psd_max
         d1psd = np.gradient(psd)
         d2psd = np.gradient(d1psd)
     else:
-        psd=d1psd=d2psd=max_psd = None
+        psd=d1psd=d2psd=f_psd_max=f_psd_area=None
         
-    return psd, d1psd, d2psd, max_psd
+    signal_features = [t_min, t_max, t_mean, t_var, t_skew, t_kurtosis, t_iqr, t_sem, t_mad, f_psd_max, f_psd_area]
+    signal_features = np.stack(signal_features)
+    
+    return psd, d1psd, d2psd, signal_features
 
 
 def load_subject(subject_id,ids_file,folder):
@@ -71,19 +87,19 @@ def load_subject(subject_id,ids_file,folder):
     subject_psds = list()
     subject_d1psds = list()
     subject_d2psds = list()
-    subject_max_psds = list()
+    subject_sig_fts = list()
     labels_med = list()
     labels_dys = list()
     labels_tre = list()
     valid_measurements = os.listdir(os.fsencode(folder))
     for measurement_id in id_file[id_file['subject_id'] == subject_id].values[:,0]:
         if os.fsencode(measurement_id+'.csv') in valid_measurements:
-            subject_psd, subject_d1psd, subject_d2psd, subject_max_psd = load_spectrums(measurement_id,folder)
+            subject_psd, subject_d1psd, subject_d2psd, subject_sig_ft = load_spectrums(measurement_id,folder)
             if subject_psd is not None:
                 subject_psds.append(subject_psd)
                 subject_d1psds.append(subject_d1psd)
                 subject_d2psds.append(subject_d2psd)
-                subject_max_psds.append(subject_max_psd)
+                subject_sig_fts.append(subject_sig_ft)
                 labels_med.append(id_file['on_off'][id_file['measurement_id'] == measurement_id].values.astype(int)[0])
                 labels_dys.append(id_file['dyskinesia'][id_file['measurement_id'] == measurement_id].values.astype(int)[0])
                 labels_tre.append(id_file['tremor'][id_file['measurement_id'] == measurement_id].values.astype(int)[0])
@@ -104,13 +120,10 @@ def load_subject(subject_id,ids_file,folder):
     labels = np.hstack((labels_med,labels_dys))
     labels = np.hstack((labels,labels_tre))
 
-    enc=OneHotEncoder(handle_unknown='ignore',sparse=False)
-    ft_matrix1 = enc.fit_transform(labels_med)
-    ft_matrix2 = enc.fit_transform(labels_dys)
-    ft_matrix3 = enc.fit_transform(labels_tre)
-    
-    ft_matrix4 = np.stack(subject_max_psds)
-    ft_matrix4 = ft_matrix4/np.max(ft_matrix4)
+    ft_matrix1 = subject_psds
+    ft_matrix2 = subject_d1psds
+    ft_matrix3 = subject_d2psds
+    ft_matrix4 = np.stack(subject_sig_fts)
     
     return cn_matrix1, cn_matrix2, cn_matrix3, ft_matrix1, ft_matrix2, ft_matrix3, ft_matrix4, labels
 
@@ -118,34 +131,43 @@ def load_subject(subject_id,ids_file,folder):
 
 args = parser.parse_args()
 
+study = args.study
+hdf5_prefix = args.prefix
+
+if study == "CIS":
+    path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
+    # subjects_list = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1043,1046,1048,1049,1051,1044,1039] #1051,1044,1039
+    ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
+
+if study == "REAL":
+    path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
+    # subjects_list = ['hbv012','hbv017', 'hbv051',  'hbv077', 'hbv043', 'hbv014', 'hbv018', 'hbv013', 'hbv022', 'hbv023', 'hbv038','hbv054']
+    ids_file = "REAL-PD_Training_Data_IDs_Labels.csv"
+
+
 if __name__ == '__main__':
 
-    if (args.ids_file is not None) and (args.folder is not None) and (args.prefix is not None):
+    subjects_ids = np.unique(pd.read_csv(path+ids_file,usecols=[1]).values).tolist()
+    
+    f = hdf5_handler(path+hdf5_prefix+'.hdf5','a')
 
-        ids_file = args.ids_file
-        folder = args.folder
-        hdf5_prefix = args.prefix
-        subjects_ids = np.unique(pd.read_csv(folder+ids_file,usecols=[1]).values).tolist()
+    print('Loading data for study {} at {}.hdf5'.format(study,hdf5_prefix))
+
+    for subject_id in subjects_ids:
+        print('Loading subject '+str(subject_id))
+        data = load_subject(subject_id,ids_file,path)
+        subj = f.create_group(str(subject_id))
+        subj.create_dataset('cn_matrix1',data=data[0])
+        subj.create_dataset('cn_matrix2', data=data[1])
+        subj.create_dataset('cn_matrix3', data=data[2])
+        subj.create_dataset('ft_matrix1', data=data[3])
+        subj.create_dataset('ft_matrix2', data=data[4])
+        subj.create_dataset('ft_matrix3', data=data[5])
+        subj.create_dataset('ft_matrix4', data=data[6])
+        subj.create_dataset('labels', data=data[7])
         
-        f = hdf5_handler(folder+hdf5_prefix+'.hdf5','a')
-    
-        for subject_id in subjects_ids:
-            print('Loading subject '+str(subject_id))
-            data = load_subject(subject_id,ids_file,folder)
-            subj = f.create_group(str(subject_id))
-            subj.create_dataset('cn_matrix1',data=data[0])
-            subj.create_dataset('cn_matrix2', data=data[1])
-            subj.create_dataset('cn_matrix3', data=data[2])
-            subj.create_dataset('ft_matrix1', data=data[3])
-            subj.create_dataset('ft_matrix2', data=data[4])
-            subj.create_dataset('ft_matrix3', data=data[5])
-            subj.create_dataset('ft_matrix4', data=data[6])
-            subj.create_dataset('labels', data=data[7])
-            
-        print('Prepare data done!')
-    
-    else:
-        print('Args missing')
+    print('Prepare data done!')
+
     
 
 
