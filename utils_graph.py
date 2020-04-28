@@ -31,13 +31,15 @@ def get_adjacency(cn_matrix, threshold):
                 sparse_mask[node].append(neighbors[i])
     return mask, sparse_mask
 
-def get_balanced_indexes(labels,n_val=4):
+def get_balanced_indexes(labels,n_val=4,test_data_included=True):
 
     idx_train = list()
     # idx_val = list()
     idx_test = list()
 
     id_labels = np.unique(labels)
+    if test_data_included:
+        id_labels = id_labels[1:]
     idx_labels = {i:[] for i in id_labels}
     n_labels = {i:[] for i in id_labels}
     for i in id_labels:
@@ -59,7 +61,7 @@ def get_balanced_indexes(labels,n_val=4):
 
 def load_data(path, subject, label, cn_type, ft_type, threshold):
 
-    file = path+"training_data_graphs_2.hdf5"
+    file = path+"train_test_data_graphs.hdf5"
 
     f = hdf5_handler(file,'r')
 

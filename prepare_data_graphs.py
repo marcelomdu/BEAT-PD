@@ -11,8 +11,10 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 parser = argparse.ArgumentParser()
 parser.add_argument('--study', type=str, default="CIS",
                     help='Study name')
-parser.add_argument('--prefix', type=str, default="training_data_graphs_2", 
+parser.add_argument('--prefix', type=str, default="train_test_data_graphs", 
                     help='HDF5 destination file name')
+parser.add_argument('--ignore_test_data', default=False, action='store_true',
+                    help='Include test data')
 
 
 @njit
@@ -25,7 +27,7 @@ def calc_mag_diff(x):
     
     return mag_diff
 
-@jit
+@jit(nopython=False)
 def calc_cn_matrix(x,p_value):
     n = x.shape[0]
     cn_matrix = np.zeros((n,n))
@@ -57,7 +59,6 @@ def load_spectrums(x,folder,interval=5):
     t_skew = t_describe[4]
     t_kurtosis = t_describe[5]
     t_iqr = iqr(subj['mag_diff_f'])
-    # t_entropy = entropy(subj['mag_diff_f'])
     t_sem = tsem(subj['mag_diff_f'])
     t_mad = median_absolute_deviation(subj['mag_diff_f'])
 
@@ -82,36 +83,52 @@ def load_spectrums(x,folder,interval=5):
     return psd, d1psd, d2psd, signal_features
 
 
-def load_subject(subject_id,ids_file,folder):
-    id_file = pd.read_csv(folder+ids_file)
-    subject_psds = list()
-    subject_d1psds = list()
-    subject_d2psds = list()
-    subject_sig_fts = list()
+def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_data):
+    ids_train = pd.read_csv(path_train+ids_train)
+    psds = list()
+    d1psds = list()
+    d2psds = list()
+    signal_fts = list()
     labels_med = list()
     labels_dys = list()
     labels_tre = list()
-    valid_measurements = os.listdir(os.fsencode(folder))
-    for measurement_id in id_file[id_file['subject_id'] == subject_id].values[:,0]:
-        if os.fsencode(measurement_id+'.csv') in valid_measurements:
-            subject_psd, subject_d1psd, subject_d2psd, subject_sig_ft = load_spectrums(measurement_id,folder)
-            if subject_psd is not None:
-                subject_psds.append(subject_psd)
-                subject_d1psds.append(subject_d1psd)
-                subject_d2psds.append(subject_d2psd)
-                subject_sig_fts.append(subject_sig_ft)
-                labels_med.append(id_file['on_off'][id_file['measurement_id'] == measurement_id].values.astype(int)[0])
-                labels_dys.append(id_file['dyskinesia'][id_file['measurement_id'] == measurement_id].values.astype(int)[0])
-                labels_tre.append(id_file['tremor'][id_file['measurement_id'] == measurement_id].values.astype(int)[0])
-    subject_psds = np.stack(subject_psds)
-    subject_d1psds = np.stack(subject_d1psds)
-    subject_d2psds = np.stack(subject_d2psds)
+    valid_train_files = os.listdir(os.fsencode(path_train))
+
+    for measurement_id in ids_train[ids_train['subject_id'] == subject_id].values[:,0]:
+        if os.fsencode(measurement_id+'.csv') in valid_train_files:
+            psd, d1psd, d2psd, signal_ft = load_spectrums(measurement_id,path_train)
+            if psd is not None:
+                psds.append(psd)
+                d1psds.append(d1psd)
+                d2psds.append(d2psd)
+                signal_fts.append(signal_ft)
+                labels_med.append(ids_train['on_off'][ids_train['measurement_id'] == measurement_id].values.astype(int)[0])
+                labels_dys.append(ids_train['dyskinesia'][ids_train['measurement_id'] == measurement_id].values.astype(int)[0])
+                labels_tre.append(ids_train['tremor'][ids_train['measurement_id'] == measurement_id].values.astype(int)[0])
+    if not ignore_test_data:
+        ids_test = pd.read_csv(path_test+ids_test)
+        valid_test_files = os.listdir(os.fsencode(path_test))
+        for measurement_id in ids_test[ids_test['subject_id'] == subject_id].values[:,0]:
+            if os.fsencode(measurement_id+'.csv') in valid_test_files:
+                psd, d1psd, d2psd, signal_ft = load_spectrums(measurement_id,path_test)
+                if psd is not None:
+                    psds.append(psd)
+                    d1psds.append(d1psd)
+                    d2psds.append(d2psd)
+                    signal_fts.append(signal_ft)
+                    labels_med.append(-1)
+                    labels_dys.append(-1)
+                    labels_tre.append(-1)
+    
+    psds = np.stack(psds)
+    d1psds = np.stack(d1psds)
+    d2psds = np.stack(d2psds)
     
     p_value = 0.001
     
-    cn_matrix1 = calc_cn_matrix(subject_psds,p_value)
-    cn_matrix2 = calc_cn_matrix(subject_d1psds,p_value)
-    cn_matrix3 = calc_cn_matrix(subject_d2psds,p_value)
+    cn_matrix1 = calc_cn_matrix(psds,p_value)
+    cn_matrix2 = calc_cn_matrix(d1psds,p_value)
+    cn_matrix3 = calc_cn_matrix(d2psds,p_value)
     
     labels_med = np.stack(labels_med).reshape(-1,1)
     labels_dys = np.stack(labels_dys).reshape(-1,1)
@@ -120,10 +137,10 @@ def load_subject(subject_id,ids_file,folder):
     labels = np.hstack((labels_med,labels_dys))
     labels = np.hstack((labels,labels_tre))
 
-    ft_matrix1 = subject_psds
-    ft_matrix2 = subject_d1psds
-    ft_matrix3 = subject_d2psds
-    ft_matrix4 = np.stack(subject_sig_fts)
+    ft_matrix1 = psds
+    ft_matrix2 = d1psds
+    ft_matrix3 = d2psds
+    ft_matrix4 = np.stack(signal_fts)
     
     return cn_matrix1, cn_matrix2, cn_matrix3, ft_matrix1, ft_matrix2, ft_matrix3, ft_matrix4, labels
 
@@ -133,29 +150,34 @@ args = parser.parse_args()
 
 study = args.study
 hdf5_prefix = args.prefix
+ignore_test_data = args.ignore_test_data
 
 if study == "CIS":
-    path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
+    path_train="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
+    path_test="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Test/testing_data/"
+    ids_train = "CIS-PD_Training_Data_IDs_Labels.csv"
+    ids_test = "cis-pd.CIS-PD_Test_Data_IDs.csv"
     # subjects_list = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1043,1046,1048,1049,1051,1044,1039] #1051,1044,1039
-    ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
 
 if study == "REAL":
-    path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
+    path_train="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
+    path_test="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Test/testing_data/smartwatch_accelerometer/"
+    ids_train = "REAL-PD_Training_Data_IDs_Labels.csv"
+    ids_test = "real-pd.REAL-PD_Test_Data_IDs.csv"
     # subjects_list = ['hbv012','hbv017', 'hbv051',  'hbv077', 'hbv043', 'hbv014', 'hbv018', 'hbv013', 'hbv022', 'hbv023', 'hbv038','hbv054']
-    ids_file = "REAL-PD_Training_Data_IDs_Labels.csv"
 
 
 if __name__ == '__main__':
 
-    subjects_ids = np.unique(pd.read_csv(path+ids_file,usecols=[1]).values).tolist()
+    subjects_ids = np.unique(pd.read_csv(path_train+ids_train,usecols=[1]).values).tolist()
     
-    f = hdf5_handler(path+hdf5_prefix+'.hdf5','a')
+    f = hdf5_handler(path_train+hdf5_prefix+'.hdf5','a')
 
     print('Loading data for study {} at {}.hdf5'.format(study,hdf5_prefix))
 
     for subject_id in subjects_ids:
         print('Loading subject '+str(subject_id))
-        data = load_subject(subject_id,ids_file,path)
+        data = load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_data)
         subj = f.create_group(str(subject_id))
         subj.create_dataset('cn_matrix1',data=data[0])
         subj.create_dataset('cn_matrix2', data=data[1])
