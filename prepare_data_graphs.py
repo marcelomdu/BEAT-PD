@@ -6,12 +6,13 @@ from scipy import signal
 from numba import jit, njit
 from utils_graph import hdf5_handler
 from scipy.stats import pearsonr, describe, iqr, entropy, tsem, median_absolute_deviation
+from scipy.spatial.distance import braycurtis, canberra, chebyshev, cityblock, correlation, cosine, euclidean, hamming, minkowski, wminkowski
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--study', type=str, default="CIS",
                     help='Study name')
-parser.add_argument('--prefix', type=str, default="train_test_data_graphs", 
+parser.add_argument('--prefix', type=str, default="train_test_data_graphs_2", 
                     help='HDF5 destination file name')
 parser.add_argument('--ignore_test_data', default=False, action='store_true',
                     help='Include test data')
@@ -27,8 +28,100 @@ def calc_mag_diff(x):
     
     return mag_diff
 
-@jit(nopython=False)
-def calc_cn_matrix(x,p_value):
+
+def cn_braycurtis(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = braycurtis(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_canberra(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = canberra(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_chebyshev(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = chebyshev(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_cityblock(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = cityblock(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_correlation(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = correlation(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_cosine(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = cosine(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_euclidean(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = euclidean(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_hamming(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = hamming(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_minkowsky(x):
+    n = x.shape[0]
+    cn_matrix = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            cn_matrix[i,j] = minkowski(x[i,:], x[j,:])
+    
+    return cn_matrix
+
+def cn_wminkowsky(x):
+    n1 = x.shape[0]
+    n2 = x.shape[1]
+    cn_matrix = np.zeros((n1,n1))
+    w = np.logspace(0,1,n2,base=10.0)
+    for i in range(0,n1):
+        for j in range(0,n1):
+            cn_matrix[i,j] = wminkowski(x[i,:], x[j,:],2,w)
+    
+    return cn_matrix
+
+def cn_pearson(x,p_value):
     n = x.shape[0]
     cn_matrix = np.zeros((n,n))
     p_matrix = np.zeros((n,n))
@@ -126,9 +219,20 @@ def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_
     
     p_value = 0.001
     
-    cn_matrix1 = calc_cn_matrix(psds,p_value)
-    cn_matrix2 = calc_cn_matrix(d1psds,p_value)
-    cn_matrix3 = calc_cn_matrix(d2psds,p_value)
+    cn_matrix1 = cn_pearson(psds,p_value)
+    cn_matrix2 = cn_pearson(d1psds,p_value)
+    cn_matrix3 = cn_pearson(d2psds,p_value)
+
+    cn_matrix4 = cn_braycurtis(psds)
+    cn_matrix5 = cn_canberra(psds)
+    cn_matrix6 = cn_chebyshev(psds)
+    cn_matrix7 = cn_cityblock(psds)
+    cn_matrix8 = cn_correlation(psds)
+    cn_matrix9 = cn_cosine(psds)
+    cn_matrix10 = cn_euclidean(psds)
+    cn_matrix11 = cn_hamming(psds)
+    cn_matrix12 = cn_minkowsky(psds)
+    cn_matrix13 = cn_wminkowsky(psds)
     
     labels_med = np.stack(labels_med).reshape(-1,1)
     labels_dys = np.stack(labels_dys).reshape(-1,1)
@@ -142,7 +246,7 @@ def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_
     ft_matrix3 = d2psds
     ft_matrix4 = np.stack(signal_fts)
     
-    return cn_matrix1, cn_matrix2, cn_matrix3, ft_matrix1, ft_matrix2, ft_matrix3, ft_matrix4, labels
+    return cn_matrix1, cn_matrix2, cn_matrix3, cn_matrix4, cn_matrix5, cn_matrix6, cn_matrix7, cn_matrix8, cn_matrix9, cn_matrix10, cn_matrix11, cn_matrix12, cn_matrix13, ft_matrix1, ft_matrix2, ft_matrix3, ft_matrix4, labels
 
 #-----------------------------------------------------------------------------
 
@@ -182,11 +286,21 @@ if __name__ == '__main__':
         subj.create_dataset('cn_matrix1',data=data[0])
         subj.create_dataset('cn_matrix2', data=data[1])
         subj.create_dataset('cn_matrix3', data=data[2])
-        subj.create_dataset('ft_matrix1', data=data[3])
-        subj.create_dataset('ft_matrix2', data=data[4])
-        subj.create_dataset('ft_matrix3', data=data[5])
-        subj.create_dataset('ft_matrix4', data=data[6])
-        subj.create_dataset('labels', data=data[7])
+        subj.create_dataset('cn_matrix4', data=data[3])
+        subj.create_dataset('cn_matrix5', data=data[4])
+        subj.create_dataset('cn_matrix6', data=data[5])
+        subj.create_dataset('cn_matrix7', data=data[6])
+        subj.create_dataset('cn_matrix8', data=data[7])
+        subj.create_dataset('cn_matrix9', data=data[8])
+        subj.create_dataset('cn_matrix10', data=data[9])
+        subj.create_dataset('cn_matrix11', data=data[10])
+        subj.create_dataset('cn_matrix12', data=data[11])
+        subj.create_dataset('cn_matrix13', data=data[12])
+        subj.create_dataset('ft_matrix1', data=data[13])
+        subj.create_dataset('ft_matrix2', data=data[14])
+        subj.create_dataset('ft_matrix3', data=data[15])
+        subj.create_dataset('ft_matrix4', data=data[16])
+        subj.create_dataset('labels', data=data[17])
         
     print('Prepare data done!')
 

@@ -46,8 +46,10 @@ parser.add_argument('--cn_threshold', type=float, default=20,
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-np.random.seed(args.seed)
-torch.manual_seed(args.seed)
+
+seed = np.random.randint(100)#args.seed
+np.random.seed(seed)
+torch.manual_seed(seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 

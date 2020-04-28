@@ -61,7 +61,7 @@ def get_balanced_indexes(labels,n_val=4,test_data_included=True):
 
 def load_data(path, subject, label, cn_type, ft_type, threshold):
 
-    file = path+"train_test_data_graphs.hdf5"
+    file = path+"train_test_data_graphs_2.hdf5"
 
     f = hdf5_handler(file,'r')
 
