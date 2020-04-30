@@ -50,7 +50,7 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 
 seed = args.seed
-seed = np.random.randint(100)
+# seed = np.random.randint(100)
 np.random.seed(seed)
 torch.manual_seed(seed)
 if args.cuda:
@@ -73,7 +73,7 @@ if study == "REAL":
 if not (args.subject == None):
     subjects_list = [args.subject]
 
-subjects_list = [1038]
+# subjects_list = [1038]
 
 for subject in subjects_list:
 

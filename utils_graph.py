@@ -97,39 +97,41 @@ def load_data(path, subject, label, cn_type, ft_type):
     # adj = torch.sparse.FloatTensor(idx,n_adj,torch.Size([adj.shape[0],adj.shape[1]]))
 
     adj = data['cn_matrix{}'.format(cn_type)][()]
-    # mask = np.invert(np.diag(np.ones(adj.shape[0])).astype(bool))
-    # adj = mask*adj
     
-    adj2 = scaler.fit_transform(adj)
-    # adj = adj+np.ones(adj.shape[0])
     
-    sorted_labels1 = list()
-    sorted_labels2 = list()
-    sorted_labels3 = list()
-    sorted_labels4 = list()
-    sorted_labels = list()
-    nt = int(np.sum(labels[:,0]))
-    adj_temp = adj[:-nt,:-nt]
-    adj_temp2 = adj2[:-nt,:-nt]
-    for i in range(0,adj_temp.shape[0]):
-        n = labels[i,:]==1
-        adj_sorted = np.argsort(adj_temp[i,:])[::-1]
-        sorted_labels1.append(labels[adj_sorted,n])
-        # adj_sorted = np.argsort(adj_temp[:,i])[::-1]
-        # sorted_labels2.append(labels[adj_sorted,n])
-        adj_sorted = np.argsort(adj_temp2[i,:])[::-1]
-        sorted_labels3.append(labels[adj_sorted,n])
-        # adj_sorted = np.argsort(adj_temp2[:,i])[::-1]
-        # sorted_labels4.append(labels[adj_sorted,n])
+    ####-------------------------cn metrics test-----------------------####
+    # # mask = np.invert(np.diag(np.ones(adj.shape[0])).astype(bool))
+    # # adj = mask*adj
+    # adj2 = scaler.fit_transform(adj)
+    # # adj = adj+np.ones(adj.shape[0])
+    
+    # sorted_labels1 = list()
+    # sorted_labels2 = list()
+    # sorted_labels3 = list()
+    # sorted_labels4 = list()
+    # sorted_labels = list()
+    # nt = int(np.sum(labels[:,0]))
+    # adj_temp = adj[:-nt,:-nt]
+    # adj_temp2 = adj2[:-nt,:-nt]
+    # for i in range(0,adj_temp.shape[0]):
+    #     n = labels[i,:]==1
+    #     adj_sorted = np.argsort(adj_temp[i,:])[::-1]
+    #     sorted_labels1.append(labels[adj_sorted,n])
+    #     # adj_sorted = np.argsort(adj_temp[:,i])[::-1]
+    #     # sorted_labels2.append(labels[adj_sorted,n])
+    #     adj_sorted = np.argsort(adj_temp2[i,:])[::-1]
+    #     sorted_labels3.append(labels[adj_sorted,n])
+    #     # adj_sorted = np.argsort(adj_temp2[:,i])[::-1]
+    #     # sorted_labels4.append(labels[adj_sorted,n])
 
-    sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels1),axis=0))))))
-    # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels2),axis=0))))))
-    sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels3),axis=0))))))
-    # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels4),axis=0))))))
+    # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels1),axis=0))))))
+    # # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels2),axis=0))))))
+    # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels3),axis=0))))))
+    # # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels4),axis=0))))))
 
-    for i in range(0,len(sorted_labels)):    
-        plt.figure(i)
-        plt.plot(sorted_labels[i])
+    # for i in range(0,len(sorted_labels)):    
+    #     plt.figure(i)
+    #     plt.plot(sorted_labels[i])
 
     
     adj = sp.coo_matrix(adj)
