@@ -8,6 +8,9 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from scipy.sparse.linalg.eigen.arpack import eigsh
 
+from scipy.stats import zscore
+from matplotlib import pyplot as plt
+
 
 def hdf5_handler(filename, mode="r"):
     h5py.File(filename, "a").close()
@@ -31,7 +34,7 @@ def get_adjacency(cn_matrix, threshold):
                 sparse_mask[node].append(neighbors[i])
     return mask, sparse_mask
 
-def get_balanced_indexes(labels,n_val=4,test_data_included=True):
+def get_balanced_indexes(labels,n_val=20,test_data_included=True):
 
     idx_train = list()
     # idx_val = list()
@@ -59,7 +62,7 @@ def get_balanced_indexes(labels,n_val=4,test_data_included=True):
 
     return idx_train, idx_test
 
-def load_data(path, subject, label, cn_type, ft_type, threshold):
+def load_data(path, subject, label, cn_type, ft_type):
 
     file = path+"train_test_data_graphs_2.hdf5"
 
@@ -88,10 +91,51 @@ def load_data(path, subject, label, cn_type, ft_type, threshold):
     else:
         raise Exception("Invalid target label")
     
-    adj, _ = get_adjacency(data['cn_matrix{}'.format(cn_type)][()], 100-threshold)
-    idx = torch.from_numpy(np.vstack(np.nonzero(adj)))
-    n_adj = torch.from_numpy(np.ones(idx.shape[1]).astype(np.double)).to(dtype=torch.float32)
-    adj = torch.sparse.FloatTensor(idx,n_adj,torch.Size([adj.shape[0],adj.shape[1]]))
+    # adj, _ = get_adjacency(data['cn_matrix{}'.format(cn_type)][()], 100-threshold)
+    # idx = torch.from_numpy(np.vstack(np.nonzero(adj)))
+    # n_adj = torch.from_numpy(np.ones(idx.shape[1]).astype(np.double)).to(dtype=torch.float32)
+    # adj = torch.sparse.FloatTensor(idx,n_adj,torch.Size([adj.shape[0],adj.shape[1]]))
+
+    adj = data['cn_matrix{}'.format(cn_type)][()]
+    # mask = np.invert(np.diag(np.ones(adj.shape[0])).astype(bool))
+    # adj = mask*adj
+    
+    adj2 = scaler.fit_transform(adj)
+    # adj = adj+np.ones(adj.shape[0])
+    
+    sorted_labels1 = list()
+    sorted_labels2 = list()
+    sorted_labels3 = list()
+    sorted_labels4 = list()
+    sorted_labels = list()
+    nt = int(np.sum(labels[:,0]))
+    adj_temp = adj[:-nt,:-nt]
+    adj_temp2 = adj2[:-nt,:-nt]
+    for i in range(0,adj_temp.shape[0]):
+        n = labels[i,:]==1
+        adj_sorted = np.argsort(adj_temp[i,:])[::-1]
+        sorted_labels1.append(labels[adj_sorted,n])
+        # adj_sorted = np.argsort(adj_temp[:,i])[::-1]
+        # sorted_labels2.append(labels[adj_sorted,n])
+        adj_sorted = np.argsort(adj_temp2[i,:])[::-1]
+        sorted_labels3.append(labels[adj_sorted,n])
+        # adj_sorted = np.argsort(adj_temp2[:,i])[::-1]
+        # sorted_labels4.append(labels[adj_sorted,n])
+
+    sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels1),axis=0))))))
+    # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels2),axis=0))))))
+    sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels3),axis=0))))))
+    # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels4),axis=0))))))
+
+    for i in range(0,len(sorted_labels)):    
+        plt.figure(i)
+        plt.plot(sorted_labels[i])
+
+    
+    adj = sp.coo_matrix(adj)
+    idx = torch.from_numpy(np.stack([adj.row.astype(np.int_),adj.col.astype(np.int_)]))
+    values = torch.from_numpy(adj.data)
+    adj = torch.sparse.FloatTensor(idx,values,torch.Size(adj.shape))
 
     idx_train, idx_test = get_balanced_indexes(data['labels'][:,int(n_alvo)-1])
     
@@ -161,3 +205,12 @@ def sparse_to_tuple(sparse_mx):
 
     return sparse_mx
 
+def threshold_adj(adj,threshold):  
+    adj_temp = adj.to_dense().numpy()
+    adj_temp, _ = get_adjacency(adj_temp, 100-threshold)
+    adj_temp = sp.coo_matrix(adj_temp.astype(np.double))
+    idx = torch.from_numpy(np.stack([adj_temp.row.astype(np.int_),adj_temp.col.astype(np.int_)]))
+    values = torch.from_numpy(adj_temp.data)
+    adj = torch.sparse.FloatTensor(idx,values,torch.Size(adj_temp.shape))
+
+    return adj

@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from layers_graph import GraphConvolution, ChebyGraphConvolution
 
-from torch_geometric.nn import ChebConv, SAGEConv
+from torch_geometric.nn import ChebConv, SAGEConv, GATConv, SGConv
 from torch_geometric.data import Data
 
 class GCN(nn.Module):
@@ -34,11 +34,11 @@ class ChebyGCN(nn.Module):
         x = self.gc2(x, adj)
         return F.log_softmax(x, dim=1)
 
-class GeoChebyConv(nn.Module):
+class GeoChebConv(nn.Module):
     def __init__(self, nfeat, nhid, nclass, dropout):
-        super(GeoChebyConv,self).__init__()
+        super(GeoChebConv,self).__init__()
 
-        K = 2
+        K = 3
         nclass = int(nclass)
         self.gc1 = ChebConv(nfeat, nhid, K)
         self.gc2 = ChebConv(nhid, nclass, K)
@@ -66,4 +66,38 @@ class GeoSAGEConv(nn.Module):
         x = F.relu(self.gc1(data['x'], edge_index=data['edge_index']))
         x = F.dropout(x, self.dropout, training=self.training)
         x = self.gc2(x, edge_index=data['edge_index'])
+        return F.log_softmax(x, dim=1)
+
+
+class GeoGATConv(nn.Module):
+    def __init__(self, nfeat, nhid, nclass, dropout):
+        super(GeoGATConv,self).__init__()
+
+        nclass = int(nclass)
+        self.gc1 = GATConv(nfeat, nhid, heads=3, concat=False)
+        self.gc2 = GATConv(nhid, nclass, heads=3, concat=False)
+        self.dropout = dropout
+
+    def forward(self, features, adj):
+        data = Data(x=features, edge_index=adj._indices())
+        x = F.relu(self.gc1(data['x'], edge_index=data['edge_index']))
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.gc2(x, edge_index=data['edge_index'])
+        return F.log_softmax(x, dim=1)
+
+
+class GeoSGConv(nn.Module):
+    def __init__(self, nfeat, nhid, nclass, dropout):
+        super(GeoSGConv,self).__init__()
+
+        nclass = int(nclass)
+        self.gc1 = SGConv(nfeat, nhid)
+        self.gc2 = SGConv(nhid, nclass)
+        self.dropout = dropout
+
+    def forward(self, features, adj):
+        data = Data(x=features, edge_index=adj._indices())
+        x = F.relu(self.gc1(data['x'], edge_index=data['edge_index'], edge_weight=data['edge_attr']))
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.gc2(x, edge_index=data['edge_index'], edge_weight=data['edge_attr'])
         return F.log_softmax(x, dim=1)

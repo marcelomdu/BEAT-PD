@@ -9,8 +9,8 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from utils_graph import load_data, accuracy, chebyshev_polynomials
-from models_graph import GCN, ChebyGCN, GeoChebyConv, GeoSAGEConv
+from utils_graph import load_data, accuracy, chebyshev_polynomials, threshold_adj
+from models_graph import GCN, ChebyGCN, GeoChebConv, GeoSAGEConv, GeoGATConv
 
 # Training settings
 parser = argparse.ArgumentParser()
@@ -36,18 +36,21 @@ parser.add_argument('--study', type=str, default="CIS",
                     help='Study name')
 parser.add_argument('--condition', type=str, default="tre",
                     help='Condition for training (med: medication, dys: dyskinesia, tre: tremor)')
-parser.add_argument('--cn_type', type=int, default=1,
+parser.add_argument('--cn_type', type=int, default=5,
                     help='Connectivity to be used (1:PSD cross-correlation, 2:PSD derivative cross-correlation, 3:PSD 2nd derivative cross-correlation)')
 parser.add_argument('--ft_type', type=int, default=4,
                     help='Features to be used (1:PSDs, 2:PSDs first derivative, 3:PSDs 2nd derivative, 4:Signal statistical features)')
 parser.add_argument('--cn_threshold', type=float, default=20,
                     help='Threshold to be used for the connectivity matrix')
+parser.add_argument('--subject', default=None,
+                    help='Choose single subject for train')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 
-seed = np.random.randint(100)#args.seed
+seed = args.seed
+seed = np.random.randint(100)
 np.random.seed(seed)
 torch.manual_seed(seed)
 if args.cuda:
@@ -67,11 +70,19 @@ if study == "REAL":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
     subjects_list = ['hbv012', 'hbv013', 'hbv022', 'hbv023', 'hbv038','hbv054']#'hbv017', 'hbv051',  'hbv077', 'hbv043', 'hbv014', 'hbv018', 
 
+if not (args.subject == None):
+    subjects_list = [args.subject]
+
+subjects_list = [1038]
+
 for subject in subjects_list:
 
     # Load data
-    adj, features, labels, idx_train, idx_test = load_data(path=path,subject=str(subject),label=label,cn_type=cn_type,ft_type=ft_type,threshold=cn_threshold)
+    adj, features, labels, idx_train, idx_test = load_data(path=path,subject=str(subject),label=label,cn_type=cn_type,ft_type=ft_type)
     
+    if cn_threshold > 0:
+        adj = threshold_adj(adj,cn_threshold)
+
     # Model and optimizer
     if args.model == 'gcn':
         model = GCN(nfeat=features.shape[1],
@@ -92,12 +103,17 @@ for subject in subjects_list:
                     max_degree=3,
                     dropout=args.dropout)
     elif args.model == 'geo_gcn_cheby':
-        model = GeoChebyConv(nfeat=features.shape[1],
+        model = GeoChebConv(nfeat=features.shape[1],
                     nhid=args.hidden,
                     nclass=labels.max().item() + 1,
                     dropout=args.dropout)
     elif args.model == 'geo_sage':
         model = GeoSAGEConv(nfeat=features.shape[1],
+                    nhid=args.hidden,
+                    nclass=labels.max().item() + 1,
+                    dropout=args.dropout)
+    elif args.model == 'geo_gat':
+        model = GeoGATConv(nfeat=features.shape[1],
                     nhid=args.hidden,
                     nclass=labels.max().item() + 1,
                     dropout=args.dropout)
@@ -133,9 +149,13 @@ for subject in subjects_list:
 
         # loss_val = F.nll_loss(output[idx_val], labels[idx_val])
         # acc_val = accuracy(output[idx_val], labels[idx_val])
-        # print('Epoch: {:04d}'.format(epoch+1),
-        #     'loss_train: {:.4f}'.format(loss_train.item()),
-        #     'acc_train: {:.4f}'.format(acc_train.item()),
+        if (epoch % 200) == 1:
+            print('Epoch: {:04d}'.format(epoch+1))
+            print(
+                # 'Epoch: {:04d}'.format(epoch+1),
+                'loss_train: {:.4f}'.format(loss_train.item()),
+                'acc_train: {:.4f}'.format(acc_train.item()))
+            test()
         #     'loss_val: {:.4f}'.format(loss_val.item()),
         #     'acc_val: {:.4f}'.format(acc_val.item()),
         #     'time: {:.4f}s'.format(time.time() - t))
@@ -146,10 +166,11 @@ for subject in subjects_list:
         output = model(features, adj)
         loss_test = F.nll_loss(output[idx_test], labels[idx_test])
         acc_test = accuracy(output[idx_test], labels[idx_test])
-        print("Test set results for {}:".format(subject),
-            "loss= {:.4f}".format(loss_test.item()),
-            "accuracy= {:.4f}".format(acc_test.item()),
-            "test_labels= {}".format(labels[idx_test]))
+        print(
+            # "Test set results for {}:".format(subject),
+            "loss_test_= {:.4f}".format(loss_test.item()),
+            "acc_test_= {:.4f}".format(acc_test.item()))
+            # "test_labels= {}".format(labels[idx_test]))
 
 
     # Train model
