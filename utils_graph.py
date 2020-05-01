@@ -100,11 +100,20 @@ def load_data(path, subject, label, cn_type, ft_type):
     
     
     ####-------------------------cn metrics test-----------------------####
+    # s_folder = "/media/marcelomdu/Data//figures/"
     # # mask = np.invert(np.diag(np.ones(adj.shape[0])).astype(bool))
-    # # adj = mask*adj
+    # # adj = mask*adj    
     # adj2 = scaler.fit_transform(adj)
     # # adj = adj+np.ones(adj.shape[0])
     
+    # invert = True
+   
+    # if invert:
+    #     sigma = 0.5
+    #     adj = np.exp(-adj/np.power(sigma,2))
+    #     adj2 = np.exp(-adj2/np.power(sigma,2))
+        
+        
     # sorted_labels1 = list()
     # sorted_labels2 = list()
     # sorted_labels3 = list()
@@ -124,9 +133,60 @@ def load_data(path, subject, label, cn_type, ft_type):
     #     # adj_sorted = np.argsort(adj_temp2[:,i])[::-1]
     #     # sorted_labels4.append(labels[adj_sorted,n])
 
-    # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels1),axis=0))))))
+    # sorted_labels1 = np.sum(np.stack(sorted_labels1),axis=0)
+    # sorted_labels3 = np.sum(np.stack(sorted_labels3),axis=0)
+    
+    # plt.figure(1.1)
+    # plt.title("Sum of ones 1: "+str(cn_type))
+    # plt.plot(sorted_labels1)
+    # plt.savefig(s_folder+str(cn_type)+"_1.1")
+    # plt.figure(1.2)
+    # plt.title("Sum of ones 3 "+str(cn_type))
+    # plt.plot(sorted_labels3)
+    # plt.savefig(s_folder+str(cn_type)+"_1.2")
+
+    # sorted_labels1 = np.cumsum(sorted_labels1[1:])
+    # sorted_labels3 = np.cumsum(sorted_labels3[1:])
+    
+    # plt.figure(2)
+    # plt.title("Cumulative sum "+str(cn_type))
+    # plt.plot(sorted_labels1)
+    # plt.plot(sorted_labels3)
+    # plt.savefig(s_folder+str(cn_type)+"_2")
+    
+    # sorted_labels1 = np.gradient(sorted_labels1)
+    # sorted_labels3 = np.gradient(sorted_labels3)
+    
+    # plt.figure(3)
+    # plt.title("Cumulative sum gradient "+str(cn_type))
+    # plt.plot(sorted_labels1)
+    # plt.plot(sorted_labels3)
+    # plt.savefig(s_folder+str(cn_type)+"_3")
+    
+    # sorted_labels1 = zscore(sorted_labels1)
+    # sorted_labels3 = zscore(sorted_labels3)
+    
+    # plt.figure(4)
+    # plt.title("Gradient zscore "+str(cn_type))
+    # plt.plot(sorted_labels1)
+    # plt.plot(sorted_labels3)
+    # plt.savefig(s_folder+str(cn_type)+"_4")
+    
+    # sorted_labels1 = np.cumsum(sorted_labels1)
+    # sorted_labels3 = np.cumsum(sorted_labels3)
+    
+    # plt.figure(5)
+    # plt.title("Zscore cummulative sum "+str(cn_type))
+    # plt.plot(sorted_labels1)
+    # plt.plot(sorted_labels3)
+    # plt.savefig(s_folder+str(cn_type)+"_5")
+    
+    # sorted_labels.append(sorted_labels1)
+    # sorted_labels.append(sorted_labels3)
+
+    # # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels1),axis=0))))))
     # # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels2),axis=0))))))
-    # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels3),axis=0))))))
+    # # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels3),axis=0))))))
     # # sorted_labels.append(np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels4),axis=0))))))
 
     # for i in range(0,len(sorted_labels)):    
