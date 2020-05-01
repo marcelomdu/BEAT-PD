@@ -36,7 +36,7 @@ parser.add_argument('--study', type=str, default="CIS",
                     help='Study name')
 parser.add_argument('--condition', type=str, default="tre",
                     help='Condition for training (med: medication, dys: dyskinesia, tre: tremor)')
-parser.add_argument('--cn_type', type=int, default=4,
+parser.add_argument('--cn_type', type=int, default=13,
                     help='Connectivity to be used (1:PSD cross-correlation, 2:PSD derivative cross-correlation, 3:PSD 2nd derivative cross-correlation)')
 parser.add_argument('--ft_type', type=int, default=4,
                     help='Features to be used (1:PSDs, 2:PSDs first derivative, 3:PSDs 2nd derivative, 4:Signal statistical features)')
@@ -72,8 +72,6 @@ if study == "REAL":
 
 if not (args.subject == None):
     subjects_list = [args.subject]
-
-# subjects_list = [1038]
 
 for subject in subjects_list:
 
