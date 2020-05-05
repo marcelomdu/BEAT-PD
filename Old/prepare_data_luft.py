@@ -29,6 +29,44 @@ def calc_mag_diff(x):
 
 
 def load_spectrums(x,folder,interval=3):
+    samples = interval*50 # interval in seconds
+    subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
+    pca = PCA(n_components=1)
+    subj['tremor_axis'] = pca.fit_transform(subj.values[:,0:3])
+    sos = signal.butter(2,[0.5,20],btype='bandpass',fs=50,output='sos')
+    subj['filtered_tremor_axis'] = signal.sosfilt(sos,subj['tremor_axis'].values)
+    psd = list()
+    w_labels = list()
+    f_peaks = list()
+    d1psds = list()
+    nperseg = samples
+    tau = nperseg/5
+    window = 'hann' #signal.windows.exponential(nperseg,tau=tau)
+    
+    for i in range(0,subj.values.shape[0],samples):
+        s = subj['filtered_tremor_axis'].values[i:i+samples]
+        if s.shape[0] == samples:
+            freq, ps = signal.welch(s,fs=50,window=window,detrend='linear',nperseg=nperseg)
+            # ps = ps[10:38]
+            argmax = np.argmax(ps[10:38])+10
+            f_peaks.append(np.around(freq[argmax],decimals=1))
+            p_ratio = np.sum(ps[argmax-2:argmax+2])/np.sum(ps[10:38])
+            if p_ratio > 0.5:
+                w_labels.append(1)
+            else:
+                w_labels.append(0)
+            
+            # plt.plot(freqs,ps)
+            d1psd = np.gradient(ps)
+            psd.append(ps[10:38])
+            d1psds.append(d1psd[10:38])
+    w_labels = np.stack(w_labels[:-1])
+    f_peaks = np.stack(f_peaks[:,-1])
+    psd = np.stack(psd[:-1])
+    t_psds = psd[np.where(w_labels==1)]
+    nt_psds = psd[np.where(w_labels==0)]
+    d1psds = np.stack(d1psds[:-1])
+    
     sos = signal.butter(10,4,btype='high',fs=50,output='sos')
     samples = interval*50 # interval in seconds
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))

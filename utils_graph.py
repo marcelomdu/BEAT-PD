@@ -34,7 +34,7 @@ def get_adjacency(cn_matrix, threshold):
                 sparse_mask[node].append(neighbors[i])
     return mask, sparse_mask
 
-def get_balanced_indexes(labels,n_val=20,test_data_included=True):
+def get_balanced_indexes(labels,n_val,test_data_included=True):
 
     idx_train = list()
     # idx_val = list()
@@ -62,7 +62,7 @@ def get_balanced_indexes(labels,n_val=20,test_data_included=True):
 
     return idx_train, idx_test
 
-def load_data(path, subject, label, cn_type, ft_type):
+def load_data(path, subject, label, n_val, cn_type, ft_type, invert=False, scale=False):
 
     file = path+"train_test_data_graphs_2.hdf5"
 
@@ -90,31 +90,27 @@ def load_data(path, subject, label, cn_type, ft_type):
         x = torch.FloatTensor(features)
     else:
         raise Exception("Invalid target label")
-    
-    # adj, _ = get_adjacency(data['cn_matrix{}'.format(cn_type)][()], 100-threshold)
-    # idx = torch.from_numpy(np.vstack(np.nonzero(adj)))
-    # n_adj = torch.from_numpy(np.ones(idx.shape[1]).astype(np.double)).to(dtype=torch.float32)
-    # adj = torch.sparse.FloatTensor(idx,n_adj,torch.Size([adj.shape[0],adj.shape[1]]))
 
-    adj = data['cn_matrix{}'.format(cn_type)][()]
+    adj = data['cn_matrix{}'.format(cn_type)][()]   
+    adj = adj/np.amax(adj)
     
-    scale = True
+    if invert:
+        sigma = 1
+        adj = np.exp(-adj/np.power(sigma,2))
     
     if scale:
         adj = scaler.fit_transform(adj)
-    
-    invert = True
-   
-    if invert:
-        sigma = 0.5
-        adj = np.exp(-adj/np.power(sigma,2))
+        for i in range(0,adj.shape[0]):
+            adj[i,:] = adj[i,:]-np.min(adj[i,:])
+            adj[i,:] = adj[i,:]/np.max(adj[i,:])
+        adj = adj.T
         
     adj = sp.coo_matrix(adj)
     idx = torch.from_numpy(np.stack([adj.row.astype(np.int_),adj.col.astype(np.int_)]))
     values = torch.from_numpy(adj.data)
     adj = torch.sparse.FloatTensor(idx,values,torch.Size(adj.shape))
 
-    idx_train, idx_test = get_balanced_indexes(data['labels'][:,int(n_alvo)-1])
+    idx_train, idx_test = get_balanced_indexes(data['labels'][:,int(n_alvo)-1],n_val)
     
     return adj, x, y, idx_train, idx_test
 
@@ -206,38 +202,32 @@ def cn_test(path, subject, label, cn_type, ft_type):
 
     data = f[str(subject)]
 
-    scaler = StandardScaler()
-    features = data['ft_matrix{}'.format(ft_type)][()]
-    features = scaler.fit_transform(features)
-
     enc = OneHotEncoder(sparse=False)
     labels = data['labels'][()][:,n_alvo-1].reshape(-1,1)
     labels = enc.fit_transform(labels)
 
-    if (labels.shape[1] > 1):
-        y = torch.LongTensor(np.where(labels)[1])
-        x = torch.FloatTensor(features)
-    else:
+    if (labels.shape[1] < 1):
         raise Exception("Invalid target label")
 
     adj = data['cn_matrix{}'.format(cn_type)][()]
 
-    s_folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/cn_tests/"+str(subject)+"_"   
-    adj2 = scaler.fit_transform(adj)
+    s_folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/cn_tests2/"+str(subject)+"_"   
+    # adj2 = scaler.fit_transform(adj)
     
     invert = True
-   
+
+    
     if invert:
         sigma = 0.5
         adj = np.exp(-adj/np.power(sigma,2))
-        adj2 = np.exp(-adj2/np.power(sigma,2))
-        
+        # adj2 = np.exp(-adj2/np.power(sigma,2))
+    scaler = StandardScaler()
+    adj2 = scaler.fit_transform(adj) 
         
     sorted_labels1 = list()
-    # sorted_labels2 = list()
     sorted_labels3 = list()
-    # sorted_labels4 = list()
-    nt = int(np.sum(labels[:,0]))
+    
+    nt = int(np.sum(labels[:,-1]))
     adj_temp = adj[:-nt,:-nt]
     adj_temp2 = adj2[:-nt,:-nt]
     for i in range(0,adj_temp.shape[0]):
@@ -246,21 +236,12 @@ def cn_test(path, subject, label, cn_type, ft_type):
         sorted_labels1.append(labels[adj_sorted,n])
         adj_sorted = np.argsort(adj_temp2[i,:])[::-1]
         sorted_labels3.append(labels[adj_sorted,n])
-
-    # sorted_labels1 = np.sum(np.stack(sorted_labels1),axis=0)
-    # sorted_labels3 = np.sum(np.stack(sorted_labels3),axis=0)
     
-    # sorted_labels1 = np.cumsum(sorted_labels1)
-    # sorted_labels3 = np.cumsum(sorted_labels3)
+    col_sum_1 = np.sum(np.stack(sorted_labels1),axis=0)
+    col_sum_3 = np.sum(np.stack(sorted_labels3),axis=0)
     
-    # sorted_labels1 = np.gradient(sorted_labels1)
-    # sorted_labels3 = np.gradient(sorted_labels3)
-    
-    # sorted_labels1 = zscore(sorted_labels1)
-    # sorted_labels3 = zscore(sorted_labels3)
-    
-    sorted_labels1 = np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels1),axis=0)))))
-    sorted_labels3 = np.cumsum(zscore(np.gradient(np.cumsum(np.sum(np.stack(sorted_labels3),axis=0)))))
+    sorted_labels1 = np.cumsum(zscore(np.gradient(np.cumsum(col_sum_1))))
+    sorted_labels3 = np.cumsum(zscore(np.gradient(np.cumsum(col_sum_3))))
     
     plt.figure(str(subject)+str(cn_type))
     plt.title("Zscore cummulative sum "+str(cn_type))

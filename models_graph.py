@@ -2,8 +2,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from layers_graph import GraphConvolution, ChebyGraphConvolution
 
-from torch_geometric.nn import ChebConv, SAGEConv, GATConv, SGConv
+from torch_geometric.nn import ChebConv, SAGEConv, GATConv, SGConv, GCNConv
 from torch_geometric.data import Data
+
+import torch
 
 class GCN(nn.Module):
     def __init__(self, nfeat, nhid, nclass, dropout):
@@ -96,8 +98,25 @@ class GeoSGConv(nn.Module):
         self.dropout = dropout
 
     def forward(self, features, adj):
-        data = Data(x=features, edge_index=adj._indices())
+        data = Data(x=features, edge_index=adj._indices(), edge_attr=adj._values())
         x = F.relu(self.gc1(data['x'], edge_index=data['edge_index'], edge_weight=data['edge_attr']))
         x = F.dropout(x, self.dropout, training=self.training)
-        x = self.gc2(x, edge_index=data['edge_index'], edge_weight=data['edge_attr'])
+        x = self.gc2(x.type(torch.float32), edge_index=data['edge_index'], edge_weight=data['edge_attr'])
+        return F.log_softmax(x, dim=1)
+
+
+class GeoGCNConv(nn.Module):
+    def __init__(self, nfeat, nhid, nclass, dropout):
+        super(GeoGCNConv,self).__init__()
+
+        nclass = int(nclass)
+        self.gc1 = GCNConv(nfeat, nhid)
+        self.gc2 = GCNConv(nhid, nclass)
+        self.dropout = dropout
+
+    def forward(self, features, adj):
+        data = Data(x=features, edge_index=adj._indices(), edge_attr=adj._values())
+        x = F.relu(self.gc1(data['x'], edge_index=data['edge_index'], edge_weight=data['edge_attr']))
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.gc2(x.type(torch.float32), edge_index=data['edge_index'], edge_weight=data['edge_attr'])
         return F.log_softmax(x, dim=1)

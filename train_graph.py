@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from utils_graph import load_data, accuracy, chebyshev_polynomials, threshold_adj
-from models_graph import GCN, ChebyGCN, GeoChebConv, GeoSAGEConv, GeoGATConv
+from models_graph import GCN, ChebyGCN, GeoChebConv, GeoSAGEConv, GeoGATConv, GeoSGConv
 
 # Training settings
 parser = argparse.ArgumentParser()
@@ -19,31 +19,37 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=200,
+parser.add_argument('--epochs', type=int, default=20000,
                     help='Number of epochs to train.')
-parser.add_argument('--lr', type=float, default=0.01,
+parser.add_argument('--lr', type=float, default=0.1,
                     help='Initial learning rate.')
 parser.add_argument('--weight_decay', type=float, default=5e-4,
                     help='Weight decay (L2 loss on parameters).')
-parser.add_argument('--hidden', type=int, default=16,
+parser.add_argument('--hidden', type=int, default=22,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
-parser.add_argument('--model', default='gcn_cheby', help='gcn model used (default: gcn_cheby, '
+parser.add_argument('--model', default='geo_gcn', help='gcn model used (default: gcn_cheby, '
                                                              'uses chebyshev polynomials, '
                                                              'options: gcn, gcn_cheby, dense )')
 parser.add_argument('--study', type=str, default="CIS",
                     help='Study name')
 parser.add_argument('--condition', type=str, default="tre",
                     help='Condition for training (med: medication, dys: dyskinesia, tre: tremor)')
-parser.add_argument('--cn_type', type=int, default=13,
-                    help='Connectivity to be used (1:PSD cross-correlation, 2:PSD derivative cross-correlation, 3:PSD 2nd derivative cross-correlation)')
 parser.add_argument('--ft_type', type=int, default=4,
                     help='Features to be used (1:PSDs, 2:PSDs first derivative, 3:PSDs 2nd derivative, 4:Signal statistical features)')
-parser.add_argument('--cn_threshold', type=float, default=20,
+parser.add_argument('--n_val', type=int, default=4,
+                    help='Number of validation samples per label')
+parser.add_argument('--cn_type', type=int, default=5,
+                    help='Connectivity to be used (1:PSD cross-correlation, 2:PSD derivative cross-correlation, 3:PSD 2nd derivative cross-correlation)')
+parser.add_argument('--cn_threshold', type=float, default=0,
                     help='Threshold to be used for the connectivity matrix')
 parser.add_argument('--subject', default=None,
                     help='Choose single subject for train')
+parser.add_argument('--cn_invert', action='store_true', default=False,
+                    help='Transform cn from distance to gaussian')
+parser.add_argument('--cn_scale', action='store_true', default=False,
+                    help='Apply scaling to cn and transform it in a directed adj matrix')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -56,17 +62,11 @@ torch.manual_seed(seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-study = args.study
-cn_type = args.cn_type
-ft_type = args.ft_type
-cn_threshold = args.cn_threshold
-label=args.condition
-
-if study == "CIS":
+if args.study == "CIS":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
     subjects_list = [1004,1006,1007,1019,1020,1023,1032,1034,1038,1046,1048,1049] #1051,1044,1039,1043
 
-if study == "REAL":
+if args.study == "REAL":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
     subjects_list = ['hbv012', 'hbv013', 'hbv022', 'hbv023', 'hbv038','hbv054']#'hbv017', 'hbv051',  'hbv077', 'hbv043', 'hbv014', 'hbv018', 
 
@@ -76,10 +76,17 @@ if not (args.subject == None):
 for subject in subjects_list:
 
     # Load data
-    adj, features, labels, idx_train, idx_test = load_data(path=path,subject=str(subject),label=label,cn_type=cn_type,ft_type=ft_type)
-    
-    if cn_threshold > 0:
-        adj = threshold_adj(adj,cn_threshold)
+    adj, features, labels, idx_train, idx_test = load_data(path=path,
+                                                           subject=str(subject),
+                                                           label=args.condition,
+                                                           n_val=args.n_val,
+                                                           ft_type=args.ft_type,
+                                                           cn_type=args.cn_type,
+                                                           invert=args.cn_invert,
+                                                           scale=args.cn_scale)
+
+    if args.cn_threshold > 0:
+        adj = threshold_adj(adj,args.cn_threshold)
 
     # Model and optimizer
     if args.model == 'gcn':
@@ -112,6 +119,16 @@ for subject in subjects_list:
                     dropout=args.dropout)
     elif args.model == 'geo_gat':
         model = GeoGATConv(nfeat=features.shape[1],
+                    nhid=args.hidden,
+                    nclass=labels.max().item() + 1,
+                    dropout=args.dropout)
+    elif args.model == 'geo_sgc':
+        model = GeoSGConv(nfeat=features.shape[1],
+                    nhid=args.hidden,
+                    nclass=labels.max().item() + 1,
+                    dropout=args.dropout)
+    elif args.model == 'geo_gcn':
+        model = GeoSGConv(nfeat=features.shape[1],
                     nhid=args.hidden,
                     nclass=labels.max().item() + 1,
                     dropout=args.dropout)
@@ -172,6 +189,7 @@ for subject in subjects_list:
 
 
     # Train model
+    print("Model: {}".format(args.model))
     t_total = time.time()
     for epoch in range(args.epochs):
         train(epoch)
@@ -179,4 +197,4 @@ for subject in subjects_list:
     # print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
     # Testing
-    test()
+    # test()

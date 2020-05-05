@@ -12,7 +12,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 parser = argparse.ArgumentParser()
 parser.add_argument('--study', type=str, default="CIS",
                     help='Study name')
-parser.add_argument('--prefix', type=str, default="train_test_data_graphs_2", 
+parser.add_argument('--prefix', type=str, default="train_test_data_graphs_3", 
                     help='HDF5 destination file name')
 parser.add_argument('--ignore_test_data', default=False, action='store_true',
                     help='Include test data')
@@ -29,95 +29,22 @@ def calc_mag_diff(x):
     return mag_diff
 
 
-def cn_braycurtis(x):
+def cn_distances(x):
     n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
+    w = np.logspace(0,1,n,base=10.0)
+    cn_matrix = np.zeros((10,n,n))
     for i in range(0,n):
         for j in range(0,n):
-            cn_matrix[i,j] = braycurtis(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_canberra(x):
-    n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
-    for i in range(0,n):
-        for j in range(0,n):
-            cn_matrix[i,j] = canberra(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_chebyshev(x):
-    n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
-    for i in range(0,n):
-        for j in range(0,n):
-            cn_matrix[i,j] = chebyshev(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_cityblock(x):
-    n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
-    for i in range(0,n):
-        for j in range(0,n):
-            cn_matrix[i,j] = cityblock(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_correlation(x):
-    n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
-    for i in range(0,n):
-        for j in range(0,n):
-            cn_matrix[i,j] = correlation(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_cosine(x):
-    n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
-    for i in range(0,n):
-        for j in range(0,n):
-            cn_matrix[i,j] = cosine(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_euclidean(x):
-    n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
-    for i in range(0,n):
-        for j in range(0,n):
-            cn_matrix[i,j] = euclidean(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_hamming(x):
-    n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
-    for i in range(0,n):
-        for j in range(0,n):
-            cn_matrix[i,j] = hamming(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_minkowsky(x):
-    n = x.shape[0]
-    cn_matrix = np.zeros((n,n))
-    for i in range(0,n):
-        for j in range(0,n):
-            cn_matrix[i,j] = minkowski(x[i,:], x[j,:])
-    
-    return cn_matrix
-
-def cn_wminkowsky(x):
-    n1 = x.shape[0]
-    n2 = x.shape[1]
-    cn_matrix = np.zeros((n1,n1))
-    w = np.logspace(0,1,n2,base=10.0)
-    for i in range(0,n1):
-        for j in range(0,n1):
-            cn_matrix[i,j] = wminkowski(x[i,:], x[j,:],2,w)
+            cn_matrix[0,i,j] = braycurtis(x[i,:], x[j,:])
+            cn_matrix[1,i,j] = canberra(x[i,:], x[j,:])
+            cn_matrix[2,i,j] = chebyshev(x[i,:], x[j,:])
+            cn_matrix[3,i,j] = cityblock(x[i,:], x[j,:])
+            cn_matrix[4,i,j] = correlation(x[i,:], x[j,:])
+            cn_matrix[5,i,j] = cosine(x[i,:], x[j,:])
+            cn_matrix[6,i,j] = euclidean(x[i,:], x[j,:])
+            cn_matrix[7,i,j] = hamming(x[i,:], x[j,:])
+            cn_matrix[8,i,j] = minkowski(x[i,:], x[j,:])
+            cn_matrix[9,i,j] = wminkowski(x[i,:], x[j,:],2,w)
     
     return cn_matrix
 
@@ -164,21 +91,22 @@ def load_spectrums(x,folder,interval=5):
         _, psd = signal.welch(subj['mag_diff_f'].values,fs=50,window=window,detrend='linear')
         f_psd_max = np.max(psd)
         f_psd_area = np.sum(psd)
-        psd = psd/f_psd_max
+        n_psd = psd/f_psd_max
         d1psd = np.gradient(psd)
         d2psd = np.gradient(d1psd)
     else:
-        psd=d1psd=d2psd=f_psd_max=f_psd_area=None
+        psd=n_psd=d1psd=d2psd=f_psd_max=f_psd_area=None
         
     signal_features = [t_min, t_max, t_mean, t_var, t_skew, t_kurtosis, t_iqr, t_sem, t_mad, f_psd_max, f_psd_area]
     signal_features = np.stack(signal_features)
     
-    return psd, d1psd, d2psd, signal_features
+    return psd, n_psd, d1psd, d2psd, signal_features
 
 
 def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_data):
     ids_train = pd.read_csv(path_train+ids_train)
     psds = list()
+    n_psds = list()
     d1psds = list()
     d2psds = list()
     signal_fts = list()
@@ -189,9 +117,10 @@ def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_
 
     for measurement_id in ids_train[ids_train['subject_id'] == subject_id].values[:,0]:
         if os.fsencode(measurement_id+'.csv') in valid_train_files:
-            psd, d1psd, d2psd, signal_ft = load_spectrums(measurement_id,path_train)
+            psd, n_psd, d1psd, d2psd, signal_ft = load_spectrums(measurement_id,path_train)
             if psd is not None:
                 psds.append(psd)
+                n_psds.append(n_psd)
                 d1psds.append(d1psd)
                 d2psds.append(d2psd)
                 signal_fts.append(signal_ft)
@@ -203,36 +132,39 @@ def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_
         valid_test_files = os.listdir(os.fsencode(path_test))
         for measurement_id in ids_test[ids_test['subject_id'] == subject_id].values[:,0]:
             if os.fsencode(measurement_id+'.csv') in valid_test_files:
-                psd, d1psd, d2psd, signal_ft = load_spectrums(measurement_id,path_test)
+                psd, n_psd, d1psd, d2psd, signal_ft = load_spectrums(measurement_id,path_test)
                 if psd is not None:
                     psds.append(psd)
+                    n_psds.append(n_psd)
                     d1psds.append(d1psd)
                     d2psds.append(d2psd)
                     signal_fts.append(signal_ft)
-                    labels_med.append(-1)
-                    labels_dys.append(-1)
-                    labels_tre.append(-1)
+                    labels_med.append(100)
+                    labels_dys.append(100)
+                    labels_tre.append(100)
     
     psds = np.stack(psds)
+    n_psds = np.stack(n_psds)
     d1psds = np.stack(d1psds)
     d2psds = np.stack(d2psds)
     
     p_value = 0.001
     
-    cn_matrix1 = cn_pearson(psds,p_value)
+    cn_matrix0 = cn_pearson(n_psds,p_value)
+    cn_matrix1 = cn_pearson(npsds,p_value)
     cn_matrix2 = cn_pearson(d1psds,p_value)
     cn_matrix3 = cn_pearson(d2psds,p_value)
 
-    cn_matrix4 = cn_braycurtis(psds)
-    cn_matrix5 = cn_canberra(psds)
-    cn_matrix6 = cn_chebyshev(psds)
-    cn_matrix7 = cn_cityblock(psds)
-    cn_matrix8 = cn_correlation(psds)
-    cn_matrix9 = cn_cosine(psds)
-    cn_matrix10 = cn_euclidean(psds)
-    cn_matrix11 = cn_hamming(psds)
-    cn_matrix12 = cn_minkowsky(psds)
-    cn_matrix13 = cn_wminkowsky(psds)
+    cn_matrix4 = cn_distances(psds)[0,:,:]
+    cn_matrix5 = cn_distances(psds)[1,:,:]
+    cn_matrix6 = cn_distances(psds)[2,:,:]
+    cn_matrix7 = cn_distances(psds)[3,:,:]
+    cn_matrix8 = cn_distances(psds)[4,:,:]
+    cn_matrix9 = cn_distances(psds)[5,:,:]
+    cn_matrix10 = cn_distances(psds)[6,:,:]
+    cn_matrix11 = cn_distances(psds)[7,:,:]
+    cn_matrix12 = cn_distances(psds)[8,:,:]
+    cn_matrix13 = cn_distances(psds)[10,:,:]
     
     labels_med = np.stack(labels_med).reshape(-1,1)
     labels_dys = np.stack(labels_dys).reshape(-1,1)
@@ -241,7 +173,8 @@ def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_
     labels = np.hstack((labels_med,labels_dys))
     labels = np.hstack((labels,labels_tre))
 
-    ft_matrix1 = psds
+    ft_matrix0 = psds
+    ft_matrix1 = n_psds
     ft_matrix2 = d1psds
     ft_matrix3 = d2psds
     ft_matrix4 = np.stack(signal_fts)
@@ -283,24 +216,26 @@ if __name__ == '__main__':
         print('Loading subject '+str(subject_id))
         data = load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_data)
         subj = f.create_group(str(subject_id))
-        subj.create_dataset('cn_matrix1',data=data[0])
-        subj.create_dataset('cn_matrix2', data=data[1])
-        subj.create_dataset('cn_matrix3', data=data[2])
-        subj.create_dataset('cn_matrix4', data=data[3])
-        subj.create_dataset('cn_matrix5', data=data[4])
-        subj.create_dataset('cn_matrix6', data=data[5])
-        subj.create_dataset('cn_matrix7', data=data[6])
-        subj.create_dataset('cn_matrix8', data=data[7])
-        subj.create_dataset('cn_matrix9', data=data[8])
-        subj.create_dataset('cn_matrix10', data=data[9])
-        subj.create_dataset('cn_matrix11', data=data[10])
-        subj.create_dataset('cn_matrix12', data=data[11])
-        subj.create_dataset('cn_matrix13', data=data[12])
-        subj.create_dataset('ft_matrix1', data=data[13])
-        subj.create_dataset('ft_matrix2', data=data[14])
-        subj.create_dataset('ft_matrix3', data=data[15])
-        subj.create_dataset('ft_matrix4', data=data[16])
-        subj.create_dataset('labels', data=data[17])
+        subj.create_dataset('cn_matrix0',data=data[0])
+        subj.create_dataset('cn_matrix1',data=data[1])
+        subj.create_dataset('cn_matrix2', data=data[2])
+        subj.create_dataset('cn_matrix3', data=data[3])
+        subj.create_dataset('cn_matrix4', data=data[4])
+        subj.create_dataset('cn_matrix5', data=data[5])
+        subj.create_dataset('cn_matrix6', data=data[6])
+        subj.create_dataset('cn_matrix7', data=data[7])
+        subj.create_dataset('cn_matrix8', data=data[8])
+        subj.create_dataset('cn_matrix9', data=data[9])
+        subj.create_dataset('cn_matrix10', data=data[10])
+        subj.create_dataset('cn_matrix11', data=data[11])
+        subj.create_dataset('cn_matrix12', data=data[12])
+        subj.create_dataset('cn_matrix13', data=data[13])
+        subj.create_dataset('ft_matrix0', data=data[14])
+        subj.create_dataset('ft_matrix1', data=data[15])
+        subj.create_dataset('ft_matrix2', data=data[16])
+        subj.create_dataset('ft_matrix3', data=data[17])
+        subj.create_dataset('ft_matrix4', data=data[18])
+        subj.create_dataset('labels', data=data[19])
         
     print('Prepare data done!')
 
