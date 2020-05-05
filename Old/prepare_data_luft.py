@@ -6,6 +6,7 @@ from scipy import signal
 from numba import njit
 from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
+from spectrum import pburg
 
 def hdf5_handler(filename, mode="r"):
     h5py.File(filename, "a").close()
@@ -28,85 +29,91 @@ def calc_mag_diff(x):
     return mag_diff
 
 
-def load_spectrums(x,folder,interval=3):
+def load_spectrums(x,folder,interval=4,lf=3,hf=8,th=0.4):
     samples = interval*50 # interval in seconds
     subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
+    sos = signal.butter(2,[1,20],btype='bandpass',fs=50,output='sos')
+    # PCA
     pca = PCA(n_components=1)
-    subj['tremor_axis'] = pca.fit_transform(subj.values[:,0:3])
-    sos = signal.butter(2,[0.5,20],btype='bandpass',fs=50,output='sos')
-    subj['filtered_tremor_axis'] = signal.sosfilt(sos,subj['tremor_axis'].values)
-    psd = list()
-    w_labels = list()
-    f_peaks = list()
-    d1psds = list()
-    nperseg = samples
-    tau = nperseg/5
-    window = 'hann' #signal.windows.exponential(nperseg,tau=tau)
-    
-    for i in range(0,subj.values.shape[0],samples):
-        s = subj['filtered_tremor_axis'].values[i:i+samples]
-        if s.shape[0] == samples:
-            freq, ps = signal.welch(s,fs=50,window=window,detrend='linear',nperseg=nperseg)
-            # ps = ps[10:38]
-            argmax = np.argmax(ps[10:38])+10
-            f_peaks.append(np.around(freq[argmax],decimals=1))
-            p_ratio = np.sum(ps[argmax-2:argmax+2])/np.sum(ps[10:38])
-            if p_ratio > 0.5:
-                w_labels.append(1)
-            else:
-                w_labels.append(0)
-            
-            # plt.plot(freqs,ps)
-            d1psd = np.gradient(ps)
-            psd.append(ps[10:38])
-            d1psds.append(d1psd[10:38])
-    w_labels = np.stack(w_labels[:-1])
-    f_peaks = np.stack(f_peaks[:,-1])
-    psd = np.stack(psd[:-1])
-    t_psds = psd[np.where(w_labels==1)]
-    nt_psds = psd[np.where(w_labels==0)]
-    d1psds = np.stack(d1psds[:-1])
-    
-    sos = signal.butter(10,4,btype='high',fs=50,output='sos')
-    samples = interval*50 # interval in seconds
-    subj = pd.read_csv(folder+x+".csv",usecols=(1,2,3))
+    subj['pca_axis'] = pca.fit_transform(subj.values[:,0:3])
+    subj['filtered_pca_axis'] = signal.sosfilt(sos,subj['pca_axis'].values)
+    # Mag diff
     subj['mag_diff'] = calc_mag_diff(subj.values[:,0:3])
-    subj['mag_diff_f'] = signal.sosfilt(sos,subj['mag_diff'].values)
-    psd = list()
-    nperseg = samples
-    tau = nperseg/5
-    window = signal.windows.exponential(nperseg,tau=tau)
-    # Calculates the Power Spectrum Density by Welch's method and its 1st and 2nd deltas
-    for i in range(0,subj.values.shape[0],samples):
-        s = subj['mag_diff_f'].values[i:i+samples]
-        if s.shape[0] == samples:
-            _, ps = signal.welch(s,fs=50,window=window,detrend='linear',nperseg=nperseg)
-            # Normalize data to the [0,1] interval
-            ps = ps/np.max(ps)
-            # Take only frequencies above 3.5 Hz 
-            psd.append(ps[35:])
-    psd = np.vstack(psd[:-1])
-    d1psd = (np.insert(psd,0,0,axis=0)-np.insert(psd,psd.shape[0],0,axis=0))[1:-1,:]
-    d2psd = (np.insert(d1psd,0,0,axis=0)-np.insert(d1psd,d1psd.shape[0],0,axis=0))[1:-1,:]
-    # Arrange time intervals from lowest to highest peak frequency
-    d1psd = d1psd[np.argmax(psd[1:-1],axis=1).argsort()]
-    d2psd = d2psd[np.argmax(psd[2:-2],axis=1).argsort()]
-    psd = psd[np.argmax(psd,axis=1).argsort()]
-    # Stack PSD and its deltas
-    st_psd = np.stack((psd[4:,:],d1psd[2:,:],d2psd))
-    # Calculates the Spectrogram and its 1st and 2nd deltas
-    spect = signal.spectrogram(subj['mag_diff_f'].values,fs=50,window=window,detrend='linear',nperseg=nperseg)
-    spect = (spect[2]/np.max(spect[2],axis=0)).T[:,35:]
-    d1spect = (np.insert(spect,0,0,axis=0)-np.insert(spect,spect.shape[0],0,axis=0))[1:-1,:]
-    d2spect = (np.insert(d1spect,0,0,axis=0)-np.insert(d1spect,d1spect.shape[0],0,axis=0))[1:-1,:]
-    # Arrange time intervals from lowest to highest peak frequency
-    d1spect = d1spect[np.argmax(spect[1:-1],axis=1).argsort()]
-    d2spect = d2spect[np.argmax(spect[2:-2],axis=1).argsort()]
-    spect = spect[np.argmax(spect,axis=1).argsort()]
-    # Stack PSD and its deltas
-    st_spect = np.stack((spect[4:,:],d1spect[2:,:],d2spect))
+    subj['filtered_mag_diff'] = signal.sosfilt(sos,subj['mag_diff'].values)
+    # Threshold frequencies and relative peak power
+    lf = int(lf*interval)
+    hf = int(hf*interval)
     
-    return st_psd, st_spect
+    psds_pca = list()
+    psds_mag = list()
+    wlabels_pca = list()
+    wlabels_mag = list()
+    fpeaks_pca = list()
+    fpeaks_mag = list()
+    nperseg = samples
+    # tau = nperseg/5
+    # window = signal.windows.exponential(nperseg,tau=tau)
+    window = 'hann'
+    
+    for i in range(0,subj.values.shape[0],samples):
+        sig1 = subj['filtered_pca_axis'].values[i:i+samples]
+        sig2 = subj['filtered_mag_diff'].values[i:i+samples]
+        if sig1.shape[0] == samples:
+            # PCA PSDs
+            freq, psd_pca = signal.welch(sig1,fs=50,window=window,detrend='linear',nperseg=nperseg)
+            argmax_pca = np.argmax(psd_pca[lf:hf])+lf
+            fpeaks_pca.append(np.around(freq[argmax_pca],decimals=2))
+            pratio_pca = np.sum(psd_pca[argmax_pca-1:argmax_pca+1])/np.sum(psd_pca[lf:hf])
+            if pratio_pca > th:
+                wlabels_pca.append(1)
+            else:
+                wlabels_pca.append(0)
+            psd_pca = psd_pca[lf-3:hf+3]#/np.max(psd_pca[lf-3:hf+3])
+            psds_pca.append(psd_pca)
+
+            # Mag diff PSDs
+            freq, psd_mag = signal.welch(sig2,fs=50,window=window,detrend='linear',nperseg=nperseg)
+            argmax_mag = np.argmax(psd_mag[lf:hf])+lf
+            fpeaks_mag.append(np.around(freq[argmax_mag],decimals=2))
+            pratio_mag = np.sum(psd_mag[argmax_mag-1:argmax_mag+1])/np.sum(psd_mag[lf:hf])
+            if pratio_mag > th:
+                wlabels_mag.append(1)
+            else:
+                wlabels_mag.append(0)
+            psd_mag = psd_mag[lf-3:hf+3]#/np.max(ps_mag[lf-3:hf+3])
+            psds_mag.append(psd_mag)
+
+    wlabels_pca = np.stack(wlabels_pca[:-1])
+    fpeaks_pca = np.stack(fpeaks_pca[:-1])
+    psds_pca = np.stack(psds_pca[:-1])
+    
+    wlabels_mag = np.stack(wlabels_mag[:-1])
+    fpeaks_mag = np.stack(fpeaks_mag[:-1])
+    psds_mag = np.stack(psds_mag[:-1])
+
+    wlabels = [wlabels_pca,wlabels_mag]
+    fpeaks = [fpeaks_pca,fpeaks_mag]
+    psds = [psds_pca,psds_mag]
+   
+    x = freq[lf-3:hf+3]
+    y_w = np.zeros(x.shape)
+    y_w[3]=y_w[hf-lf+3]=1
+    
+    # for i in range(0,common_tpsd1.shape[0]):
+    #     plt.figure(i)
+    #     plt.title("AND")
+    #     plt.plot(x,common_tpsd1[i,:])
+    #     plt.plot(x,common_tpsd2[i,:])
+    #     plt.plot(x,y_w)
+    # for j in range(0,xor_tpsd1.shape[0]):
+    #     plt.figure(j+i+1)
+    #     plt.title("XOR")
+    #     plt.plot(x,xor_tpsd1[j,:])
+    #     plt.plot(x,xor_tpsd2[j,:])
+    #     plt.plot(x,y_w)
+    # plt.show()
+    
+    return wlabels,fpeaks,psds,x,y_w
 
 def load_measurement(x,folder,interval=10):
     samples = interval*50 # ten seconds interval from a 50 Hz sample rate

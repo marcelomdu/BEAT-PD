@@ -150,8 +150,8 @@ def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_
     
     p_value = 0.001
     
-    cn_matrix0 = cn_pearson(n_psds,p_value)
-    cn_matrix1 = cn_pearson(npsds,p_value)
+    cn_matrix0 = cn_pearson(psds,p_value)
+    cn_matrix1 = cn_pearson(n_psds,p_value)
     cn_matrix2 = cn_pearson(d1psds,p_value)
     cn_matrix3 = cn_pearson(d2psds,p_value)
 
@@ -164,8 +164,8 @@ def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_
     cn_matrix10 = cn_distances(psds)[6,:,:]
     cn_matrix11 = cn_distances(psds)[7,:,:]
     cn_matrix12 = cn_distances(psds)[8,:,:]
-    cn_matrix13 = cn_distances(psds)[10,:,:]
-    
+    cn_matrix13 = cn_distances(psds)[10,:,:]    
+
     labels_med = np.stack(labels_med).reshape(-1,1)
     labels_dys = np.stack(labels_dys).reshape(-1,1)
     labels_tre = np.stack(labels_tre).reshape(-1,1)
@@ -179,7 +179,7 @@ def load_subject(subject_id,ids_train,path_train,ids_test,path_test,ignore_test_
     ft_matrix3 = d2psds
     ft_matrix4 = np.stack(signal_fts)
     
-    return cn_matrix1, cn_matrix2, cn_matrix3, cn_matrix4, cn_matrix5, cn_matrix6, cn_matrix7, cn_matrix8, cn_matrix9, cn_matrix10, cn_matrix11, cn_matrix12, cn_matrix13, ft_matrix1, ft_matrix2, ft_matrix3, ft_matrix4, labels
+    return cn_matrix0, cn_matrix1, cn_matrix2, cn_matrix3, cn_matrix4, cn_matrix5, cn_matrix6, cn_matrix7, cn_matrix8, cn_matrix9, cn_matrix10, cn_matrix11, cn_matrix12, cn_matrix13, ft_matrix0, ft_matrix1, ft_matrix2, ft_matrix3, ft_matrix4, labels
 
 #-----------------------------------------------------------------------------
 
