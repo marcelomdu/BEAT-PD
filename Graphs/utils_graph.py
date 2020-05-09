@@ -249,3 +249,112 @@ def cn_test(path, subject, label, cn_type, ft_type):
     plt.plot(sorted_labels3)
     plt.savefig(s_folder+str(cn_type)+"_5.jpg")
     
+
+def load_data_preclustering(path, subject, label, n_val, cn_type, ft_type, invert=False, scale=False):
+
+    file = path+"training_data_preclustering.hdf5"
+
+    f = hdf5_handler(file,'r')
+
+    if label == "dys":
+        n_alvo = 1
+    if label == "med":
+        n_alvo = 2
+    if label == "tre":
+        n_alvo = 3
+
+    data = f[str(subject)]
+
+    scaler = StandardScaler()
+    features = data['ft_matrix{}'.format(ft_type)][()]
+    features = scaler.fit_transform(features)
+
+    # enc = OneHotEncoder(sparse=False)
+    labels = data['labels'][()][:,n_alvo-1].reshape(-1,1)
+    # labels = enc.fit_transform(labels)
+
+    if (labels.shape[1] > 1):
+        y = torch.LongTensor(np.where(labels)[1])
+        x = torch.FloatTensor(features)
+    else:
+        raise Exception("Invalid target label")
+
+    adj = data['cn_matrix{}'.format(cn_type)][()]   
+    adj = adj/np.amax(adj)
+    
+    if invert:
+        sigma = 1
+        adj = np.exp(-adj/np.power(sigma,2))
+    
+    if scale:
+        adj = scaler.fit_transform(adj)
+        for i in range(0,adj.shape[0]):
+            adj[i,:] = adj[i,:]-np.min(adj[i,:])
+            adj[i,:] = adj[i,:]/np.max(adj[i,:])
+        adj = adj.T
+        
+    adj = sp.coo_matrix(adj)
+    idx = torch.from_numpy(np.stack([adj.row.astype(np.int_),adj.col.astype(np.int_)]))
+    values = torch.from_numpy(adj.data)
+    adj = torch.sparse.FloatTensor(idx,values,torch.Size(adj.shape))
+
+    idx_train, idx_test = get_balanced_indexes(data['labels'][:,int(n_alvo)-1],n_val)
+    
+    return adj, x, y, idx_train, idx_test
+
+def load_twfeatures(path,subject):
+    file = path+"training_data_preclustering.hdf5"
+    f = hdf5_handler(file,'r')
+    twfeatures = f[str(subject)]['twfeatures'][()]
+    f.close()
+    return twfeatures
+
+def load_pf_hists(path,subject,scaler,classifier,pca=False):
+    file = path+"training_data_preclustering.hdf5"
+    f = hdf5_handler(file,'r')
+    data = f[str(subject)]['measurements']
+    labels = f[str(subject)]['labels'][()]
+    freqs = f[str(subject)]['freqs'][()]
+    k = [key for key in data.keys()]
+    n = int(len(k)/4)
+    n_clusters = classifier.n_clusters
+    psds_list = k[0:n]
+    fpeaks_list = k[n:2*n]
+    wfeatures_list = k[2*n:3*n]
+    wlabels_list = k[3*n:4*n]
+    pf_hists = list()
+    for i in range(0,n):
+        wfeatures = data[wfeatures_list[i]][()]
+        fpeaks = data[fpeaks_list[i]][()]
+        wlabels = data[wlabels_list[i]][()]
+        twfeatures = wfeatures[np.where(wlabels==1)]
+        twfeatures = scaler.transform(twfeatures)
+        # twfeatures = pca.transform(twfeatures)
+        twclusts = classifier.predict(twfeatures)
+        tfpeaks = fpeaks[np.where(wlabels==1)]
+        hist = list()
+        for i in range(0,n_clusters):
+            tfpeaks_i = tfpeaks[np.where(twclusts==i)]
+            hist_tfpeaks = np.zeros(freqs.shape[0])
+            dict_tfpeaks = {i:0 for i in np.unique(tfpeaks_i)}
+            for i in range(0,tfpeaks_i.shape[0]):
+                dict_tfpeaks[tfpeaks_i[i]] += 1/tfpeaks_i.shape[0]
+            for i in dict_tfpeaks.keys():
+                hist_tfpeaks[freqs==i] = dict_tfpeaks[i]
+            hist.append(hist_tfpeaks)    
+        pf_hists.append(np.hstack(hist))
+    pf_hists = np.stack(pf_hists)
+    
+    return pf_hists,labels
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
