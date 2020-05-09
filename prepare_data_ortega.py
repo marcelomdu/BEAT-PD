@@ -58,7 +58,6 @@ def calc_psds(Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds=False):
         fpeaks = [fpeak_x,fpeak_y,fpeak_z,fpeak_a,fpeak_pca]   
     return psds, fpeaks, pratio_pca, freqs
 
-
 def calc_features(Xw,Yw,Zw,Aw,dXw,dYw,dZw,dAw,pcaw,dpcaw,samples):
     # Features calculation
     # Extracts statistical features from the time series
