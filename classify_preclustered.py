@@ -48,15 +48,15 @@ if __name__ == '__main__':
     
         twfeatures = load_twfeatures(path=path,subject=subject)
         sc = StandardScaler()
-        # pca = PCA(n_components=twfeatures.shape[1],whiten=True)
-        clf = KMeans(n_clusters=10)
+        pca = PCA(n_components=twfeatures.shape[1],whiten=True)
+        clf = KMeans(n_clusters=4)
         twfeatures = sc.fit_transform(twfeatures)
-        # twfeatures = pca.fit_transform(twfeatures)
+        twfeatures = pca.fit_transform(twfeatures)
         clf = clf.fit(twfeatures)
         
         del twfeatures
         
-        pf_hists,labels = load_pf_hists(path=path,subject=subject,classifier=clf,scaler=sc)
+        pf_hists,labels = load_pf_hists(path=path,subject=subject,classifier=clf,scaler=sc,pca=pca)
         
         datasets = [[pf_hists,labels[:,2]]]
         
@@ -97,6 +97,7 @@ if __name__ == '__main__':
                 # Plot non-normalized confusion matrix
                 disp = plot_confusion_matrix(clf, X_test, y_test,
                                              display_labels=class_names,
-                                             cmap=plt.cm.Blues)
+                                             cmap=plt.cm.Blues,
+                                             normalize='true')
                 disp.ax_.set_title(name)           
                 plt.show()

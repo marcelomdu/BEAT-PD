@@ -17,17 +17,18 @@ def hdf5_handler(filename, mode="r"):
     with contextlib.closing(h5py.h5f.open(filename.encode(), fapl=propfaid)) as fid:
         return h5py.File(fid, mode)
 
-def calc_psds(Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds=False):
+def calc_psds(t,Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds=False):
     if not all_psds:
         # PSDs PCA
         freqs, psd_pca = signal.welch(pcaw,fs=50,window=window,detrend='linear',nperseg=nperseg)
         argmax_pca = np.argmax(psd_pca[lf:hf])+lf
         fpeak_pca = np.around(freqs[argmax_pca],decimals=2)
         pratio_pca = np.sum(psd_pca[argmax_pca-1:argmax_pca+1])/np.sum(psd_pca[lf:hf])
-        psd_pca = psd_pca[lf-3:hf+3]#/np.max(psd_pca[lf-3:hf+3])        
+        # psd_pca = psd_pca[lf-3:hf+3]#/np.max(psd_pca[lf-3:hf+3])        
         # Outputs
         psds = psd_pca
         fpeaks = fpeak_pca
+        # freqs = freqs[lf-3:hf+3]
     else: 
         # Currently unused
         # PSDs PCA
@@ -162,35 +163,37 @@ def calc_features(Xw,Yw,Zw,Aw,dXw,dYw,dZw,dAw,pcaw,dpcaw,samples):
     wf = np.stack(wf)
     return wf
 
-def load_spectrums(x,folder,interval=4,overlap=0.2,lf=3,hf=8,th=0.6,all_psds=False,wlabels_only=False):
+def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=False,wlabels_only=False):
     samples = interval*50 # interval in seconds
     subj = pd.read_csv(folder+x+".csv")
     if 'x' in subj.columns:
-        subj = subj[['x','y','z']]
+        subj = subj[['t','x','y','z']]
     elif 'X' in subj.columns:
-        subj = subj[['X','Y','Z']]
+        subj = subj[['Timestamp','X','Y','Z']]
     # Calculate A as the magnitude of (x,y,z) vector
-    subj['A'] = np.sqrt(np.add(np.power(subj.values[:,0],2),np.add(np.power(subj.values[:,1],2),np.power(subj.values[:,2],2))))
+    subj['A'] = np.sqrt(np.add(np.power(subj.values[:,1],2),np.add(np.power(subj.values[:,2],2),np.power(subj.values[:,3],2))))
     # Median filter
     subj['X_fm'] = signal.medfilt(subj['X'].values,kernel_size=[7])#subj['X']
     subj['Y_fm'] = signal.medfilt(subj['Y'].values,kernel_size=[7])#subj['Y']
     subj['Z_fm'] = signal.medfilt(subj['Z'].values,kernel_size=[7])#subj['Z']
     subj['A_fm'] = signal.medfilt(subj['A'].values,kernel_size=[7])#subj['A']
     # Bandpass Butterworth filter
-    sosl = signal.butter(3,[1,20],btype='bandpass',fs=50,output='sos')
-    subj['X_fb'] = signal.sosfilt(sosl,subj['X_fm'].values)
-    subj['Y_fb'] = signal.sosfilt(sosl,subj['Y_fm'].values)
-    subj['Z_fb'] = signal.sosfilt(sosl,subj['Z_fm'].values)
-    subj['A_fb'] = signal.sosfilt(sosl,subj['A_fm'].values)
+    sosb1 = signal.butter(3,[1,20],btype='bandpass',fs=50,output='sos')
+    subj['X_fb'] = signal.sosfilt(sosb1,subj['X_fm'].values)
+    subj['Y_fb'] = signal.sosfilt(sosb1,subj['Y_fm'].values)
+    subj['Z_fb'] = signal.sosfilt(sosb1,subj['Z_fm'].values)
+    subj['A_fb'] = signal.sosfilt(sosb1,subj['A_fm'].values)
     # PCA for main motion axis extraction (not included in Ortega et al.)
     pca = PCA(n_components=1)
-    subj['PCA'] = pca.fit_transform(subj[['X_fm','Y_fm','Z_fm']].values)
+    subj['PCA'] = pca.fit_transform(subj[['X_fb','Y_fb','Z_fb']].values)
+    sosb2 = signal.butter(10,[0.1,20],btype='bandpass',fs=50,output='sos')
+    subj['PCA_f'] = signal.sosfilt(sosb2,subj['PCA'].values)
     # Jerk vectors calculation
     subj['dX'] = np.gradient(subj['X_fb'].values)
     subj['dY'] = np.gradient(subj['Y_fb'].values)
     subj['dZ'] = np.gradient(subj['Z_fb'].values)
     subj['dA'] = np.gradient(subj['A_fb'].values)
-    subj['dPCA'] = np.gradient(subj['PCA'].values)
+    subj['dPCA_f'] = np.gradient(subj['PCA_f'].values)
     # Threshold frequencies for relative peak power calculation
     lf = int(lf*interval)
     hf = int(hf*interval)
@@ -214,18 +217,19 @@ def load_spectrums(x,folder,interval=4,overlap=0.2,lf=3,hf=8,th=0.6,all_psds=Fal
     wlabels_pca = list()
     # Divide time series in 4 s windows, extracts statistical features (Ortega-Anderez,2018) and classify as tremor or non tremor windows (Luft,2019)
     for i in range(0,subj.values.shape[0],int(samples)):
+        t = np.arange(0,interval,0.02)
         Xw = subj['X_fb'].values[i:i+samples]
         Yw = subj['Y_fb'].values[i:i+samples]
         Zw = subj['Z_fb'].values[i:i+samples]
         Aw = subj['A_fb'].values[i:i+samples]
-        pcaw = subj['PCA'].values[i:i+samples]
+        pcaw = subj['PCA_f'].values[i:i+samples]
         dXw = subj['dX'].values[i:i+samples]
         dYw = subj['dY'].values[i:i+samples]
         dZw = subj['dZ'].values[i:i+samples]
         dAw = subj['dA'].values[i:i+samples]
-        dpcaw = subj['dPCA'].values[i:i+samples]
+        dpcaw = subj['dPCA_f'].values[i:i+samples]
         if pcaw.shape[0] == samples:
-            psdsw, fpeaksw, pratio_pca, freqs = calc_psds(Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds)
+            psdsw, fpeaksw, pratio_pca, freqs = calc_psds(t,Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds)
             if pratio_pca > th:
                 wlabels_pca.append(1)
             else:
@@ -307,7 +311,7 @@ def load_subject(subject_id,ids_file,folder):
     
 if __name__ == '__main__':
 
-    subjects_ids = [1006]#[1032,1049]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
+    subjects_ids = [1032,1049]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
     f = hdf5_handler(folder+'training_data_preclustering_subset.hdf5','a')
