@@ -6,6 +6,7 @@ import numpy as np
 from scipy import signal
 from sklearn.decomposition import PCA
 from scipy.stats import pearsonr, skew, kurtosis
+from scipy.integrate import cumtrapz as integrate
 
 def hdf5_handler(filename, mode="r"):
     h5py.File(filename, "a").close()
@@ -170,6 +171,7 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
         subj = subj[['t','x','y','z']]
     elif 'X' in subj.columns:
         subj = subj[['Timestamp','X','Y','Z']]
+    t = subj.values[:,0]
     # Calculate A as the magnitude of (x,y,z) vector
     subj['A'] = np.sqrt(np.add(np.power(subj.values[:,1],2),np.add(np.power(subj.values[:,2],2),np.power(subj.values[:,3],2))))
     # Median filter
@@ -194,6 +196,18 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
     subj['dZ'] = np.gradient(subj['Z_fb'].values)
     subj['dA'] = np.gradient(subj['A_fb'].values)
     subj['dPCA_f'] = np.gradient(subj['PCA_f'].values)
+    # # First integral calculation (velocity)
+    # subj['iX'] = np.append(integrate(subj['X_fb'].values,t),0)
+    # subj['iY'] = np.append(integrate(subj['Y_fb'].values,t),0)
+    # subj['iZ'] = np.append(integrate(subj['Z_fb'].values,t),0)
+    # subj['iA'] = np.append(integrate(subj['A_fb'].values,t),0)
+    # subj['iPCA'] = np.append(integrate(subj['PCA_f'].values,t),0)
+    # # Second integral calculation (displacement)
+    # subj['iiX'] = np.append(integrate(subj['iX'].values,t),0)
+    # subj['iiY'] = np.append(integrate(subj['iY'].values,t),0)
+    # subj['iiZ'] = np.append(integrate(subj['iZ'].values,t),0)
+    # subj['iiA'] = np.append(integrate(subj['iA'].values,t),0)
+    # subj['iiPCA'] = np.append(integrate(subj['iPCA'].values,t),0)
     # Threshold frequencies for relative peak power calculation
     lf = int(lf*interval)
     hf = int(hf*interval)
@@ -314,12 +328,12 @@ if __name__ == '__main__':
     subjects_ids = [1032,1049]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    f = hdf5_handler(folder+'training_data_preclustering_subset.hdf5','a')
+    # f = hdf5_handler(folder+'training_data_preclustering_subset.hdf5','a')
 
     for subject_id in subjects_ids:
         print('Loading subject '+str(subject_id))
-        subj = f.create_group(str(subject_id))
-        measurements = subj.create_group('measurements')
+        # subj = f.create_group(str(subject_id))
+        # measurements = subj.create_group('measurements')
         data = load_subject(subject_id,ids_file,folder)
         for i in range(0,len(data[0])):
             if i < 100:
