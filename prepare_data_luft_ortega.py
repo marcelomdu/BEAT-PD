@@ -6,7 +6,7 @@ import numpy as np
 from scipy import signal
 from sklearn.decomposition import PCA
 from scipy.stats import pearsonr, skew, kurtosis
-from scipy.integrate import cumtrapz as integrate
+from scipy.integrate import trapz as integrate
 
 def hdf5_handler(filename, mode="r"):
     h5py.File(filename, "a").close()
@@ -59,6 +59,16 @@ def calc_psds(t,Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds=False):
         psds = [psd_x,psd_y,psd_z,psd_a,psd_pca]
         fpeaks = [fpeak_x,fpeak_y,fpeak_z,fpeak_a,fpeak_pca]   
     return psds, fpeaks, pratio_pca, freqs
+
+def calc_displacements(t,Xw,Yw,Zw,Aw,pcaw):
+    disps = list()
+    disps.append(np.abs(integrate(Xw,t)))
+    disps.append(np.abs(integrate(Yw,t)))
+    disps.append(np.abs(integrate(Zw,t)))
+    disps.append(np.abs(integrate(Aw,t)))
+    disps.append(np.abs(integrate(pcaw,t)))
+    disps = np.stack(disps)
+    return disps
 
 def calc_features(Xw,Yw,Zw,Aw,dXw,dYw,dZw,dAw,pcaw,dpcaw,samples):
     # Features calculation
@@ -229,6 +239,7 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
     fpeaks = list()
     wfeatures = list()
     wlabels_pca = list()
+    displacements = list()
     # Divide time series in 4 s windows, extracts statistical features (Ortega-Anderez,2018) and classify as tremor or non tremor windows (Luft,2019)
     for i in range(0,subj.values.shape[0],int(samples)):
         t = np.arange(0,interval,0.02)
@@ -244,6 +255,7 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
         dpcaw = subj['dPCA_f'].values[i:i+samples]
         if pcaw.shape[0] == samples:
             psdsw, fpeaksw, pratio_pca, freqs = calc_psds(t,Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds)
+            displacements.append(calc_displacements(t,Xw,Yw,Zw,Aw,pcaw))
             if pratio_pca > th:
                 wlabels_pca.append(1)
             else:
@@ -269,6 +281,7 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
     psds.append(np.stack(psds_pca[:-1]))
     fpeaks.append(np.stack(fpeaks_pca[:-1]))
     wlabels = np.stack(wlabels_pca[:-1])
+    displacements = np.stack(displacements[:-1])
     wfeatures = np.stack(wfeatures[:-1])    
     if all_psds:
         psds.append(np.stack(psds_x[:-1]))
@@ -279,11 +292,12 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
         fpeaks.append(np.stack(fpeaks_y[:-1]))
         fpeaks.append(np.stack(fpeaks_z[:-1]))
         fpeaks.append(np.stack(fpeaks_a[:-1]))
-    return psds, fpeaks, wlabels, wfeatures, freqs
+    return psds,displacements,fpeaks,wlabels,wfeatures,freqs
 
 def load_subject(subject_id,ids_file,folder):
     ids_file = pd.read_csv(folder+ids_file)
     subject_psds = list()
+    subject_displacementes = list()
     subject_fpeaks = list()
     subject_wlabels = list()
     subject_wfeatures = list()
@@ -296,9 +310,10 @@ def load_subject(subject_id,ids_file,folder):
     i = 0
     p1 = 0
     for measurement_id in ids_file[ids_file['subject_id'] == subject_id].values[:,0]:
-        psds, fpeaks, wlabels, wfeatures, freqs = load_spectrums(measurement_id,folder,all_psds=False)        
+        psds, displacements, fpeaks, wlabels, wfeatures, freqs = load_spectrums(measurement_id,folder,all_psds=False)        
         wfeatures[np.isnan(wfeatures)] = 0
         subject_psds.append(psds[0])
+        subject_displacementes.append(displacements)
         subject_fpeaks.append(fpeaks[0])
         subject_wlabels.append(wlabels)
         subject_wfeatures.append(wfeatures)
@@ -328,12 +343,12 @@ if __name__ == '__main__':
     subjects_ids = [1032,1049]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    # f = hdf5_handler(folder+'training_data_preclustering_subset.hdf5','a')
+    f = hdf5_handler(folder+'training_data_preclustering_subset.hdf5','a')
 
     for subject_id in subjects_ids:
         print('Loading subject '+str(subject_id))
-        # subj = f.create_group(str(subject_id))
-        # measurements = subj.create_group('measurements')
+        subj = f.create_group(str(subject_id))
+        measurements = subj.create_group('measurements')
         data = load_subject(subject_id,ids_file,folder)
         for i in range(0,len(data[0])):
             if i < 100:
@@ -344,11 +359,12 @@ if __name__ == '__main__':
             else:
                 n = str(i)
             measurements.create_dataset('PSD'+n,data=data[0][i])
-            measurements.create_dataset('fpeaks'+n, data=data[1][i])
-            measurements.create_dataset('wlabels'+n,data=data[2][i])
-            measurements.create_dataset('wfeatures'+n, data=data[3][i])
-        subj.create_dataset('labels', data=data[4])
-        subj.create_dataset('freqs', data=data[5])
-        subj.create_dataset('twfeatures', data=data[6])
+            measurements.create_dataset('displacements'+n,data=data[1][i])
+            measurements.create_dataset('fpeaks'+n,data=data[2][i])
+            measurements.create_dataset('wlabels'+n,data=data[3][i])
+            measurements.create_dataset('wfeatures'+n,data=data[4][i])
+        subj.create_dataset('labels', data=data[5])
+        subj.create_dataset('freqs', data=data[6])
+        subj.create_dataset('twfeatures', data=data[7])
     
     print('Prepare data done!')
