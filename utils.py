@@ -29,12 +29,14 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
     n = int(len(k)/4)
     n_clusters = classifier.n_clusters
     # psds_list = k[0:n]
-    fpeaks_list = k[n:2*n]
-    wfeatures_list = k[2*n:3*n]
-    wlabels_list = k[3*n:4*n]
+    disps_list = k[n:2*n]
+    fpeaks_list = k[2*n:3*n]
+    wfeatures_list = k[3*n:4*n]
+    wlabels_list = k[4*n:5*n]
     pf_hists = list()
     for i in range(0,n):
         wfeatures = data[wfeatures_list[i]][()]
+        disps = data[disps_list[i]][()]
         fpeaks = data[fpeaks_list[i]][()]
         wlabels = data[wlabels_list[i]][()]
         twfeatures = wfeatures[np.where(wlabels==1)]
@@ -43,9 +45,13 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
         if pca:
             twfeatures = pca.transform(twfeatures)
         twclusts = classifier.predict(twfeatures)
+        tdisps = disps[np.where(wlabels==1)]
         tfpeaks = fpeaks[np.where(wlabels==1)]
         hist = list()
         for i in range(0,n_clusters):
+            n_m = np.sum(twclusts==i)
+            tdisps_i = tdisps[np.where(twclusts==i)]
+            tdisps_i = np.sum(tdisps_i,axis=0)/n_m
             tfpeaks_i = tfpeaks[np.where(twclusts==i)]
             hist_tfpeaks = np.zeros(freqs.shape[0])
             dict_tfpeaks = {i:0 for i in np.unique(tfpeaks_i)}
@@ -53,7 +59,8 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
                 dict_tfpeaks[tfpeaks_i[i]] += 1/tfpeaks_i.shape[0]
             for i in dict_tfpeaks.keys():
                 hist_tfpeaks[freqs==i] = dict_tfpeaks[i]
-            hist.append(hist_tfpeaks)    
+            hist.append(hist_tfpeaks)
+            hist.append(tdisps_i)
         pf_hists.append(np.hstack(hist))
     pf_hists = np.stack(pf_hists)
     
