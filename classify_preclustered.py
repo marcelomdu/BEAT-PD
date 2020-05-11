@@ -18,6 +18,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.metrics import plot_confusion_matrix
 from sklearn.feature_selection import SelectKBest
+from sklearn.preprocessing import OneHotEncoder
 
 parser = argparse.ArgumentParser()
 
@@ -32,7 +33,7 @@ args = parser.parse_args()
 
 if args.study == "CIS":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    subjects_list = [1032,1049]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1046,1048,1049] #1051,1044,1039,1043
+    subjects_list = [1004]#[1032,1049]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1046,1048,1049] #1051,1044,1039,1043
 
 if args.study == "REAL":
     path="/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/REAL/Train/training_data/smartwatch_accelerometer/"
@@ -49,7 +50,7 @@ if __name__ == '__main__':
         twfeatures = load_twfeatures(path=path,subject=subject)
         sc = StandardScaler()
         pca = PCA(n_components=twfeatures.shape[1],whiten=True)
-        clf = KMeans(n_clusters=4)
+        clf = KMeans(n_clusters=8)
         twfeatures = sc.fit_transform(twfeatures)
         twfeatures = pca.fit_transform(twfeatures)
         clf = clf.fit(twfeatures)
@@ -58,26 +59,53 @@ if __name__ == '__main__':
         
         pf_hists,labels = load_pf_hists(path=path,subject=subject,classifier=clf,scaler=sc,pca=pca)
         
-        datasets = [[pf_hists,labels[:,2]]]
+        
+        
+        # Select label type
+        labels = labels[:,0]
+        # One hot encode labels
+        enc = OneHotEncoder(sparse=False)
+        enc_labels = enc.fit_transform(labels.reshape(-1,1))
+        # Pair wise comparison
+        # l1 = 2
+        # l2 = 3
+        # selected_samples = np.add(enc_labels[:,l1],enc_labels[:,l2])
+        # pf_hists = pf_hists[np.where(selected_samples==1)]
+        # labels = labels[np.where(selected_samples==1)]
+        # Mid cut comparison
+        cut = 2
+        g1 = np.sum(enc_labels[:,:cut],axis=1)
+        labels = g1
+        
+
+        
+        # labels = labels[:,0]
+        
+        pf_hists = StandardScaler().fit_transform(pf_hists)        
+        skb = SelectKBest(k=60)
+        features = skb.fit_transform(pf_hists,labels)
+        
+        datasets = [[features,labels]]
         
         h = .02  # step size in the mesh
         
-        names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
-                 "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
-                 "Naive Bayes", "QDA"]
+        names = ["Neural Net", "AdaBoost"]
+                # "Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
+                #  "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
+                #  "Naive Bayes", "QDA"]      
         
         classifiers = [
-            KNeighborsClassifier(3),
-            SVC(kernel="linear", C=0.025, class_weight='balanced'),
-            SVC(gamma=2, C=1, class_weight='balanced'),
-            GaussianProcessClassifier(1.0 * RBF(1.0)),
-            DecisionTreeClassifier(max_depth=5),
-            RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-            MLPClassifier(alpha=1, max_iter=1000),
-            AdaBoostClassifier(),
-            GaussianNB()]#,
+            # KNeighborsClassifier(3),
+            # SVC(kernel="linear", C=0.025, class_weight='balanced'),
+            # SVC(gamma=2, C=1, class_weight='balanced'),
+            # GaussianProcessClassifier(1.0 * RBF(1.0)),
+            # DecisionTreeClassifier(max_depth=10),
+            # RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+            MLPClassifier(hidden_layer_sizes=(80, ),max_iter=1000,learning_rate='adaptive'),
+            AdaBoostClassifier()]#,
+            #GaussianNB()]#,
             #QuadraticDiscriminantAnalysis()]
-               
+             
         # figure = plt.figure(figsize=(27, 9))
         i = 1
         # iterate over datasets
@@ -100,5 +128,5 @@ if __name__ == '__main__':
                                              cmap=plt.cm.Blues,
                                              normalize='true')
                 disp.ax_.set_title(name)     
-                print(disp.confusion_matrix)
+                # print(disp.confusion_matrix)
                 plt.show()

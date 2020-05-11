@@ -13,14 +13,14 @@ def hdf5_handler(filename, mode="r"):
         return h5py.File(fid, mode)
 
 def load_twfeatures(path,subject):
-    file = path+"training_data_preclustering.hdf5"
+    file = path+"training_data_preclustering_1004.hdf5"
     f = hdf5_handler(file,'r')
     twfeatures = f[str(subject)]['twfeatures'][()]
     f.close()
     return twfeatures
 
 def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
-    file = path+"training_data_preclustering.hdf5"
+    file = path+"training_data_preclustering_1004.hdf5"
     f = hdf5_handler(file,'r')
     data = f[str(subject)]['measurements']
     labels = f[str(subject)]['labels'][()]
@@ -39,6 +39,7 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
         disps = data[disps_list[i]][()]
         fpeaks = data[fpeaks_list[i]][()]
         wlabels = data[wlabels_list[i]][()]
+        rntw = np.sum(wlabels)/wlabels.shape[0]
         twfeatures = wfeatures[np.where(wlabels==1)]
         if scaler:
             twfeatures = scaler.transform(twfeatures)
@@ -50,8 +51,11 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
         hist = list()
         for i in range(0,n_clusters):
             n_m = np.sum(twclusts==i)
-            tdisps_i = tdisps[np.where(twclusts==i)]
-            tdisps_i = np.sum(tdisps_i,axis=0)/n_m
+            if n_m > 0:
+                tdisps_i = tdisps[np.where(twclusts==i)]#[:,4]
+                tdisps_i = np.sum(tdisps_i,axis=0)/n_m
+            else:
+                tdisps_i = np.zeros(5)
             tfpeaks_i = tfpeaks[np.where(twclusts==i)]
             hist_tfpeaks = np.zeros(freqs.shape[0])
             dict_tfpeaks = {i:0 for i in np.unique(tfpeaks_i)}
@@ -61,6 +65,7 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
                 hist_tfpeaks[freqs==i] = dict_tfpeaks[i]
             hist.append(hist_tfpeaks)
             hist.append(tdisps_i)
+        hist.append(rntw)
         pf_hists.append(np.hstack(hist))
     pf_hists = np.stack(pf_hists)
     

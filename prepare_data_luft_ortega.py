@@ -6,7 +6,7 @@ import numpy as np
 from scipy import signal
 from sklearn.decomposition import PCA
 from scipy.stats import pearsonr, skew, kurtosis
-from scipy.integrate import trapz as integrate
+from scipy.integrate import cumtrapz, trapz
 
 def hdf5_handler(filename, mode="r"):
     h5py.File(filename, "a").close()
@@ -62,11 +62,16 @@ def calc_psds(t,Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds=False):
 
 def calc_displacements(t,Xw,Yw,Zw,Aw,pcaw):
     disps = list()
-    disps.append(np.abs(integrate(Xw,t)))
-    disps.append(np.abs(integrate(Yw,t)))
-    disps.append(np.abs(integrate(Zw,t)))
-    disps.append(np.abs(integrate(Aw,t)))
-    disps.append(np.abs(integrate(pcaw,t)))
+    vX = np.abs(cumtrapz(Xw,t))
+    vY = np.abs(cumtrapz(Yw,t))
+    vZ = np.abs(cumtrapz(Zw,t))
+    vA = np.abs(cumtrapz(Aw,t))
+    vpca = cumtrapz(pcaw,t)
+    disps.append(np.abs(trapz(vX,t[:-1])))
+    disps.append(np.abs(trapz(vY,t[:-1])))
+    disps.append(np.abs(trapz(vZ,t[:-1])))
+    disps.append(np.abs(trapz(vA,t[:-1])))
+    disps.append(np.abs(trapz(vpca,t[:-1])))
     disps = np.stack(disps)
     return disps
 
@@ -174,7 +179,7 @@ def calc_features(Xw,Yw,Zw,Aw,dXw,dYw,dZw,dAw,pcaw,dpcaw,samples):
     wf = np.stack(wf)
     return wf
 
-def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=False,wlabels_only=False):
+def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False,wlabels_only=False):
     samples = interval*50 # interval in seconds
     subj = pd.read_csv(folder+x+".csv")
     if 'x' in subj.columns:
@@ -185,12 +190,12 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
     # Calculate A as the magnitude of (x,y,z) vector
     subj['A'] = np.sqrt(np.add(np.power(subj.values[:,1],2),np.add(np.power(subj.values[:,2],2),np.power(subj.values[:,3],2))))
     # Median filter
-    subj['X_fm'] = signal.medfilt(subj['X'].values,kernel_size=[7])#subj['X']
-    subj['Y_fm'] = signal.medfilt(subj['Y'].values,kernel_size=[7])#subj['Y']
-    subj['Z_fm'] = signal.medfilt(subj['Z'].values,kernel_size=[7])#subj['Z']
-    subj['A_fm'] = signal.medfilt(subj['A'].values,kernel_size=[7])#subj['A']
+    subj['X_fm'] = subj['X']#signal.medfilt(subj['X'].values,kernel_size=[7])#
+    subj['Y_fm'] = subj['Y']#signal.medfilt(subj['Y'].values,kernel_size=[7])#
+    subj['Z_fm'] = subj['Z']#signal.medfilt(subj['Z'].values,kernel_size=[7])#
+    subj['A_fm'] = subj['A']#signal.medfilt(subj['A'].values,kernel_size=[7])#
     # Bandpass Butterworth filter
-    sosb1 = signal.butter(3,[1,20],btype='bandpass',fs=50,output='sos')
+    sosb1 = signal.butter(3,20,btype='lowpass',fs=50,output='sos')
     subj['X_fb'] = signal.sosfilt(sosb1,subj['X_fm'].values)
     subj['Y_fb'] = signal.sosfilt(sosb1,subj['Y_fm'].values)
     subj['Z_fb'] = signal.sosfilt(sosb1,subj['Z_fm'].values)
@@ -198,7 +203,7 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
     # PCA for main motion axis extraction (not included in Ortega et al.)
     pca = PCA(n_components=1)
     subj['PCA'] = pca.fit_transform(subj[['X_fb','Y_fb','Z_fb']].values)
-    sosb2 = signal.butter(10,[0.1,20],btype='bandpass',fs=50,output='sos')
+    sosb2 = signal.butter(10,20,btype='lowpass',fs=50,output='sos')
     subj['PCA_f'] = signal.sosfilt(sosb2,subj['PCA'].values)
     # Jerk vectors calculation
     subj['dX'] = np.gradient(subj['X_fb'].values)
@@ -222,8 +227,8 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
     lf = int(lf*interval)
     hf = int(hf*interval)
     nperseg = samples
-    # tau = nperseg/5
-    # window = signal.windows.exponential(nperseg,tau=tau)
+    tau = nperseg/5
+    window = signal.windows.exponential(nperseg,tau=tau)
     window = 'hann'
     psds_x = list()
     psds_y = list()
@@ -340,10 +345,10 @@ def load_subject(subject_id,ids_file,folder):
     
 if __name__ == '__main__':
 
-    subjects_ids = [1032,1049]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
+    subjects_ids = [1004]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
     ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
     folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    f = hdf5_handler(folder+'training_data_preclustering_subset.hdf5','a')
+    f = hdf5_handler(folder+'training_data_preclustering_1004.hdf5','a')
 
     for subject_id in subjects_ids:
         print('Loading subject '+str(subject_id))
