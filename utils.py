@@ -26,7 +26,7 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
     labels = f[str(subject)]['labels'][()]
     freqs = f[str(subject)]['freqs'][()]
     k = [key for key in data.keys()]
-    n = int(len(k)/4)
+    n = int(len(k)/5)
     n_clusters = classifier.n_clusters
     # psds_list = k[0:n]
     disps_list = k[n:2*n]

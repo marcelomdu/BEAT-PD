@@ -99,5 +99,6 @@ if __name__ == '__main__':
                                              display_labels=class_names,
                                              cmap=plt.cm.Blues,
                                              normalize='true')
-                disp.ax_.set_title(name)           
+                disp.ax_.set_title(name)     
+                print(disp.confusion_matrix)
                 plt.show()

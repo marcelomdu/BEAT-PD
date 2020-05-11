@@ -297,7 +297,7 @@ def load_spectrums(x,folder,interval=1,overlap=0.4,lf=4,hf=8,th=0.2,all_psds=Fal
 def load_subject(subject_id,ids_file,folder):
     ids_file = pd.read_csv(folder+ids_file)
     subject_psds = list()
-    subject_displacementes = list()
+    subject_displacements = list()
     subject_fpeaks = list()
     subject_wlabels = list()
     subject_wfeatures = list()
@@ -313,7 +313,7 @@ def load_subject(subject_id,ids_file,folder):
         psds, displacements, fpeaks, wlabels, wfeatures, freqs = load_spectrums(measurement_id,folder,all_psds=False)        
         wfeatures[np.isnan(wfeatures)] = 0
         subject_psds.append(psds[0])
-        subject_displacementes.append(displacements)
+        subject_displacements.append(displacements)
         subject_fpeaks.append(fpeaks[0])
         subject_wlabels.append(wlabels)
         subject_wfeatures.append(wfeatures)
@@ -333,7 +333,7 @@ def load_subject(subject_id,ids_file,folder):
     measurements_labels = np.hstack((measurements_labels_medication,measurements_labels_dyskinesia))
     measurements_labels = np.hstack((measurements_labels,measurements_labels_tremor))
     
-    return subject_psds,subject_fpeaks,subject_wlabels,subject_wfeatures,measurements_labels,freqs,twfeatures[1:,:]
+    return subject_psds,subject_displacements,subject_fpeaks,subject_wlabels,subject_wfeatures,measurements_labels,freqs,twfeatures[1:,:]
 
 #-----------------------------------------------------------------------------
 #%%
