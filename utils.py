@@ -65,7 +65,7 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False,ft0=0,ft1=100):
                 dict_tfpeaks[tfpeaks_i[i]] += 1/tfpeaks_i.shape[0]
             for i in dict_tfpeaks.keys():
                 hist_tfpeaks[freqs==i] = dict_tfpeaks[i]
-            hist.append(hist_tfpeaks)
+            # hist.append(hist_tfpeaks)
             hist.append(tdisps_i)
         hist.append(rntw)
         pf_hists.append(np.hstack(hist))

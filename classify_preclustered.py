@@ -50,11 +50,11 @@ if __name__ == '__main__':
     for subject in subjects_list:
     
         ft0 = 0
-        ft1 = 43
+        ft1 = 123
         twfeatures = load_twfeatures(path=path,subject=subject)[:,ft0:ft1+1]
         sc = StandardScaler()
         pca = PCA(n_components=twfeatures.shape[1],whiten=True)
-        clf = KMeans(n_clusters=8)
+        clf = KMeans(n_clusters=6)
         twfeatures = sc.fit_transform(twfeatures)
         twfeatures = pca.fit_transform(twfeatures)
         clf = clf.fit(twfeatures)
@@ -114,8 +114,8 @@ if __name__ == '__main__':
         # iterate over datasets
         for ds_cnt, ds in enumerate(datasets):
             # clf = AdaBoostClassifier()
-            # clf = DecisionTreeClassifier(max_depth=None)
-            clf = MLPClassifier(hidden_layer_sizes=(100, ),max_iter=1000,learning_rate='adaptive')
+            # clf = DecisionTreeClassifier(max_depth=15)
+            clf = MLPClassifier(hidden_layer_sizes=(100, ),max_iter=1000,learning_rate='adaptive',alpha=0.0001)
             # preprocess dataset, split into training and test part
             X, y = ds
             X = StandardScaler().fit_transform(X)
@@ -125,29 +125,31 @@ if __name__ == '__main__':
             train_labels = np.unique(y_train)
             enc=OneHotEncoder(sparse=False)
             y_train_enc = enc.fit_transform(y_train.reshape(-1,1))
-            # y_test = enc.fit_transform(y_test.reshape(-1,1))
+            y_test_enc = enc.fit_transform(y_test.reshape(-1,1))
             test_pred = {i:list() for i in np.unique(train_labels).astype(int)}
             test_preds = list()
             test_labels = list()
             with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    for i in np.unique(train_labels).astype(int):
-                        for j in np.unique(train_labels).astype(int):
+                    for i in np.unique(train_labels[:-1]).astype(int):
+                        for j in np.unique(train_labels[:-1]).astype(int):
                             if i!=j:
                                 # Pair wise comparison
                                 selected_samples = np.add(y_train_enc[:,i],y_train_enc[:,j])
                                 features = X_train[np.where(selected_samples==1)]
                                 y_true = y_train[np.where(selected_samples==1)]
                                 labels = y_train_enc[np.where(selected_samples==1)][:,i]    
-                                skb = SelectKBest(k=100)                        
+                                skb = SelectKBest(k='all')                        
                                 skb.fit(features,labels)
                                 features = skb.transform(features)
                                 test_features = skb.transform(X_test)
+                                test_labels = y_test_enc[:,i]
                                 for _ in range(0,k_fold_fits):
-                                    clf.fit(features, labels)              
+                                    clf.fit(features, labels)
                                     pred = clf.predict_proba(test_features)[:,1]
+                                    # pred = clf.predict(test_features)
+                                    pred = pred*np.sum(np.logical_and(test_labels,pred))/test_labels.shape[0]
                                     test_pred[i].append(pred)
-                                    test_labels.append([i,j])
                         test_preds.append(np.sum(np.stack(test_pred[i]),axis=0))
             
             test_preds = np.stack(test_preds)
