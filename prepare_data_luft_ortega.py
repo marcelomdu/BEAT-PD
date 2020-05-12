@@ -316,7 +316,8 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8.5,th=0.4,all_psds=Fal
         dpcaw = subj['dPCA_f'].values[i:i+samples]
         if pcaw.shape[0] == samples:
             psdsw, fpeaksw, pratio_pca, freqs = calc_psds(t,Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds)
-            displacements.append(calc_displacements(t,Xw,Yw,Zw,Aw,Txw,Tyw,Tzw,pcaw))
+            disps = calc_displacements(t,Xw,Yw,Zw,Aw,Txw,Tyw,Tzw,pcaw)
+            displacements.append(disps)
             pratios_pca.append(pratio_pca)
             if pratio_pca > th:
                 wlabels_pca.append(1)
@@ -325,6 +326,7 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8.5,th=0.4,all_psds=Fal
             # time window statistical features            
             wf = calc_features(Xw,Yw,Zw,Aw,Txw,Tyw,Tzw,dXw,dYw,dZw,dAw,dTxw,dTyw,dTzw,pcaw,dpcaw,samples)
             wf = np.hstack((wf,fpeaksw))
+            wf = np.hstack((wf,disps))
             wfeatures.append(wf)
             if all_psds:
                 psds_x.append(psdsw[0])

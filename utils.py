@@ -19,7 +19,7 @@ def load_twfeatures(path,subject):
     f.close()
     return twfeatures
 
-def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
+def load_pf_hists(path,subject,classifier,scaler=False,pca=False,ft0=0,ft1=100):
     file = path+"training_data_preclustering_1004.hdf5"
     f = hdf5_handler(file,'r')
     data = f[str(subject)]['measurements']
@@ -42,7 +42,7 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
         pratios = data[pratios_list[i]][()]
         wlabels = data[wlabels_list[i]][()]
         rntw = np.sum(wlabels)/wlabels.shape[0]
-        twfeatures = wfeatures[np.where(wlabels==1)]
+        twfeatures = wfeatures[np.where(wlabels==1)][:,ft0:ft1+1]
         if scaler:
             twfeatures = scaler.transform(twfeatures)
         if pca:

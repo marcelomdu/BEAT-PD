@@ -49,7 +49,9 @@ if __name__ == '__main__':
 
     for subject in subjects_list:
     
-        twfeatures = load_twfeatures(path=path,subject=subject)
+        ft0 = 0
+        ft1 = 43
+        twfeatures = load_twfeatures(path=path,subject=subject)[:,ft0:ft1+1]
         sc = StandardScaler()
         pca = PCA(n_components=twfeatures.shape[1],whiten=True)
         clf = KMeans(n_clusters=8)
@@ -59,7 +61,7 @@ if __name__ == '__main__':
         
         del twfeatures
         
-        pf_hists,labels = load_pf_hists(path=path,subject=subject,classifier=clf,scaler=sc,pca=pca)
+        pf_hists,labels = load_pf_hists(path=path,subject=subject,classifier=clf,scaler=sc,pca=pca,ft0=ft0,ft1=ft1)
         
         
         
@@ -113,7 +115,7 @@ if __name__ == '__main__':
         for ds_cnt, ds in enumerate(datasets):
             # clf = AdaBoostClassifier()
             # clf = DecisionTreeClassifier(max_depth=None)
-            clf = MLPClassifier(hidden_layer_sizes=(500, ),max_iter=5000,learning_rate='adaptive')
+            clf = MLPClassifier(hidden_layer_sizes=(100, ),max_iter=1000,learning_rate='adaptive')
             # preprocess dataset, split into training and test part
             X, y = ds
             X = StandardScaler().fit_transform(X)
