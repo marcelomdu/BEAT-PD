@@ -60,69 +60,77 @@ def calc_psds(t,Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds=False):
         fpeaks = [fpeak_x,fpeak_y,fpeak_z,fpeak_a,fpeak_pca]   
     return psds, fpeaks, pratio_pca, freqs
 
-def calc_displacements(t,Xw,Yw,Zw,Aw,Tw,Pw,pcaw):
+def calc_displacements(t,Xw,Yw,Zw,Aw,Txw,Tyw,Tzw,pcaw):
     disps = list()
     vX = np.abs(cumtrapz(Xw,t))
     vY = np.abs(cumtrapz(Yw,t))
     vZ = np.abs(cumtrapz(Zw,t))
     vA = np.abs(cumtrapz(Aw,t))
-    vT = np.abs(cumtrapz(Tw,t))
-    vP = np.abs(cumtrapz(Pw,t))
+    vTx = np.abs(cumtrapz(Txw,t))
+    vTy = np.abs(cumtrapz(Tyw,t))
+    vTz = np.abs(cumtrapz(Tzw,t))
     vpca = cumtrapz(pcaw,t)
     disps.append(np.abs(trapz(vX,t[:-1])))
     disps.append(np.abs(trapz(vY,t[:-1])))
     disps.append(np.abs(trapz(vZ,t[:-1])))
     disps.append(np.abs(trapz(vA,t[:-1])))
-    disps.append(np.abs(trapz(vT,t[:-1])))
-    disps.append(np.abs(trapz(vP,t[:-1])))
+    disps.append(np.abs(trapz(vTx,t[:-1])))
+    disps.append(np.abs(trapz(vTy,t[:-1])))
+    disps.append(np.abs(trapz(vTz,t[:-1])))
     disps.append(np.abs(trapz(vpca,t[:-1])))
     disps = np.stack(disps)
     return disps
 
-def calc_features(Xw,Yw,Zw,Aw,Tw,Pw,dXw,dYw,dZw,dAw,dTw,dPw,pcaw,dpcaw,samples):
+def calc_features(Xw,Yw,Zw,Aw,Txw,Tyw,Tzw,dXw,dYw,dZw,dAw,dTxw,dTyw,dTzw,pcaw,dpcaw,samples):
     # Features calculation
     # Extracts statistical features from the time series
     wf = list()
-    # Mean (indices 0-11)
+    # Mean (indices 0-15)
     wf.append(np.mean(Xw))
     wf.append(np.mean(Yw))
     wf.append(np.mean(Zw))
     wf.append(np.mean(Aw))
-    wf.append(np.mean(Tw))
-    wf.append(np.mean(Pw))
+    wf.append(np.mean(Txw))
+    wf.append(np.mean(Tyw))
+    wf.append(np.mean(Tzw))
     wf.append(np.mean(pcaw))
     wf.append(np.mean(dXw))
     wf.append(np.mean(dYw))
     wf.append(np.mean(dZw))
     wf.append(np.mean(dAw))
-    wf.append(np.mean(dTw))
-    wf.append(np.mean(dPw))
+    wf.append(np.mean(dTxw))
+    wf.append(np.mean(dTyw))
+    wf.append(np.mean(dTzw))
     wf.append(np.mean(dpcaw))
-    # Standard Deviation (indices 12-25)
+    # Standard Deviation (indices 16-31)
     wf.append(np.std(Xw))
     wf.append(np.std(Yw))
     wf.append(np.std(Zw))
     wf.append(np.std(Aw))
-    wf.append(np.std(Tw))
-    wf.append(np.std(Pw))
+    wf.append(np.std(Txw))
+    wf.append(np.std(Tyw))
+    wf.append(np.std(Tzw))
     wf.append(np.std(pcaw))
     wf.append(np.std(dXw))
     wf.append(np.std(dYw))
     wf.append(np.std(dZw))
     wf.append(np.std(dAw))
-    wf.append(np.std(dTw))
-    wf.append(np.std(dPw))
+    wf.append(np.std(dTxw))
+    wf.append(np.std(dTyw))
+    wf.append(np.std(dTzw))
     wf.append(np.std(dpcaw))
-    # Signal Magnitude Area (indices 26-35)
+    # Signal Magnitude Area (indices 32-43)
     wf.append(np.divide(np.sum(np.add(np.abs(Xw-np.mean(Xw)),np.add(np.abs(Yw-np.mean(Yw)),np.abs(Zw-np.mean(Zw))))),samples))
     wf.append(np.divide(np.sum(np.abs(Aw-np.mean(Aw))),samples))
-    wf.append(np.divide(np.sum(np.abs(Tw-np.mean(Tw))),samples))
-    wf.append(np.divide(np.sum(np.abs(Pw-np.mean(Pw))),samples))
+    wf.append(np.divide(np.sum(np.abs(Txw-np.mean(Txw))),samples))
+    wf.append(np.divide(np.sum(np.abs(Tyw-np.mean(Tyw))),samples))
+    wf.append(np.divide(np.sum(np.abs(Tzw-np.mean(Tzw))),samples))
     wf.append(np.divide(np.sum(np.abs(pcaw-np.mean(pcaw))),samples))
     wf.append(np.divide(np.sum(np.add(np.abs(dXw-np.mean(dXw)),np.add(np.abs(dYw-np.mean(dYw)),np.abs(dZw-np.mean(dZw))))),samples))
-    wf.append(np.divide(np.sum(np.abs(Aw-np.mean(dAw))),samples))
-    wf.append(np.divide(np.sum(np.abs(Tw-np.mean(dTw))),samples))
-    wf.append(np.divide(np.sum(np.abs(Pw-np.mean(dPw))),samples))
+    wf.append(np.divide(np.sum(np.abs(dAw-np.mean(dAw))),samples))
+    wf.append(np.divide(np.sum(np.abs(dTxw-np.mean(dTxw))),samples))
+    wf.append(np.divide(np.sum(np.abs(dTyw-np.mean(dTyw))),samples))
+    wf.append(np.divide(np.sum(np.abs(dTzw-np.mean(dTzw))),samples))
     wf.append(np.divide(np.sum(np.abs(pcaw-np.mean(dpcaw))),samples))
     # Entropy (indices 26-35) Commented due to division by zero problem
     # wf.append(np.sum(np.multiply(np.abs(Xw-np.mean(Xw)),np.log10(np.abs(Xw-np.mean(Xw))))))
@@ -135,7 +143,7 @@ def calc_features(Xw,Yw,Zw,Aw,Tw,Pw,dXw,dYw,dZw,dAw,dTw,dPw,pcaw,dpcaw,samples):
     # wf.append(np.sum(np.multiply(np.abs(dZw-np.mean(dZw)),np.log10(np.abs(dZw-np.mean(dZw))))))
     # wf.append(np.sum(np.multiply(np.abs(dAw-np.mean(dAw)),np.log10(np.abs(dAw-np.mean(dAw))))))
     # wf.append(np.sum(np.multiply(np.abs(dpcaw-np.mean(dpcaw)),np.log10(np.abs(dpcaw-np.mean(dpcaw))))))
-    # Correlation (indices 36-41)
+    # Correlation (indices 44-49)
     xyw,_= pearsonr(Xw,Yw)
     xzw,_= pearsonr(Xw,Zw)
     yzw,_= pearsonr(Yw,Zw)
@@ -148,70 +156,78 @@ def calc_features(Xw,Yw,Zw,Aw,Tw,Pw,dXw,dYw,dZw,dAw,dTw,dPw,pcaw,dpcaw,samples):
     wf.append(dxdyw)
     wf.append(dxdzw)
     wf.append(dydzw)
-    # Skewness (indices 42-55)
+    # Skewness (indices 50-65)
     wf.append(skew(Xw))
     wf.append(skew(Yw))
     wf.append(skew(Zw))
     wf.append(skew(Aw))
-    wf.append(skew(Tw))
-    wf.append(skew(Pw))
+    wf.append(skew(Txw))
+    wf.append(skew(Tyw))
+    wf.append(skew(Tzw))
     wf.append(skew(pcaw))
     wf.append(skew(dXw))
     wf.append(skew(dYw))
     wf.append(skew(dZw))
     wf.append(skew(dAw))
-    wf.append(skew(dTw))
-    wf.append(skew(dPw))
+    wf.append(skew(dTxw))
+    wf.append(skew(dTyw))
+    wf.append(skew(dTzw))
     wf.append(skew(dpcaw))
-    # Kurtosis (indices 56-69)
+    # Kurtosis (indices 66-81)
     wf.append(kurtosis(Xw))
     wf.append(kurtosis(Yw))
     wf.append(kurtosis(Zw))
     wf.append(kurtosis(Aw))
-    wf.append(kurtosis(Tw))
-    wf.append(kurtosis(Pw))
+    wf.append(kurtosis(Txw))
+    wf.append(kurtosis(Tyw))
+    wf.append(kurtosis(Tzw))
     wf.append(kurtosis(pcaw))
     wf.append(kurtosis(dXw))
     wf.append(kurtosis(dYw))
     wf.append(kurtosis(dZw))
     wf.append(kurtosis(dAw))
-    wf.append(kurtosis(dTw))
-    wf.append(kurtosis(dPw))
+    wf.append(kurtosis(dTxw))
+    wf.append(kurtosis(dTyw))
+    wf.append(kurtosis(dTzw))
     wf.append(kurtosis(dpcaw))
-    # RMS (indices 70-83)
+    # RMS (indices 82-97)
     wf.append(np.sqrt(np.divide(np.sum(np.power(Xw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(Yw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(Zw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(Aw,2)),samples)))
-    wf.append(np.sqrt(np.divide(np.sum(np.power(Tw,2)),samples)))
-    wf.append(np.sqrt(np.divide(np.sum(np.power(Pw,2)),samples)))
+    wf.append(np.sqrt(np.divide(np.sum(np.power(Txw,2)),samples)))
+    wf.append(np.sqrt(np.divide(np.sum(np.power(Tyw,2)),samples)))
+    wf.append(np.sqrt(np.divide(np.sum(np.power(Tzw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(pcaw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(dXw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(dYw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(dZw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(dAw,2)),samples)))
-    wf.append(np.sqrt(np.divide(np.sum(np.power(dTw,2)),samples)))
-    wf.append(np.sqrt(np.divide(np.sum(np.power(dPw,2)),samples)))
+    wf.append(np.sqrt(np.divide(np.sum(np.power(dTxw,2)),samples)))
+    wf.append(np.sqrt(np.divide(np.sum(np.power(dTyw,2)),samples)))
+    wf.append(np.sqrt(np.divide(np.sum(np.power(dTzw,2)),samples)))
     wf.append(np.sqrt(np.divide(np.sum(np.power(dpcaw,2)),samples)))
-    # Energy (indices 84-97)
+    # Energy (indices 98-113)
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Xw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Yw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Zw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Aw)),2)),samples))
-    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Tw)),2)),samples))
-    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Pw)),2)),samples))
+    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Txw)),2)),samples))
+    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Tyw)),2)),samples))
+    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(Tzw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(pcaw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dXw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dYw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dZw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dAw)),2)),samples))
-    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dTw)),2)),samples))
-    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dPw)),2)),samples))
+    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dTxw)),2)),samples))
+    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dTyw)),2)),samples))
+    wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dTzw)),2)),samples))
     wf.append(np.divide(np.sum(np.power(np.abs(np.fft.fft(dpcaw)),2)),samples))
     wf = np.stack(wf)
     return wf
 
-def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False,wlabels_only=False):
+def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8.5,th=0.4,all_psds=False,wlabels_only=False):
     samples = interval*50 # interval in seconds
     subj = pd.read_csv(folder+x+".csv")
     if 'x' in subj.columns:
@@ -222,23 +238,26 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False
     # Calculate A as the magnitude of (x,y,z) vector
     x2y2 = np.add(np.power(subj.values[:,1],2),np.power(subj.values[:,2],2))
     subj['A'] = np.sqrt(np.add(x2y2,np.power(subj.values[:,3],2))) # Rho
-    subj['T'] = np.arctan2(subj.values[:,3],np.sqrt(x2y2)) # Theta
-    subj['P'] = np.arctan2(subj.values[:,2],subj.values[:,1]) # Phi
+    subj['Tx'] = np.arctan2(subj.values[:,3],subj.values[:,2])  # Rotation around x
+    subj['Ty'] = np.arctan2(subj.values[:,3],subj.values[:,1])  # Rotation around y
+    subj['Tz'] = np.arctan2(subj.values[:,2],subj.values[:,1]) # Rotation around z    
     # Median filter
     subj['X_fm'] = subj['X']#signal.medfilt(subj['X'].values,kernel_size=[7])#
     subj['Y_fm'] = subj['Y']#signal.medfilt(subj['Y'].values,kernel_size=[7])#
     subj['Z_fm'] = subj['Z']#signal.medfilt(subj['Z'].values,kernel_size=[7])#
     subj['A_fm'] = subj['A']#signal.medfilt(subj['A'].values,kernel_size=[7])#
-    subj['T_fm'] = subj['T']
-    subj['P_fm'] = subj['P']
+    subj['Tx_fm'] = subj['Tx']
+    subj['Ty_fm'] = subj['Ty']
+    subj['Tz_fm'] = subj['Tz']
     # Bandpass Butterworth filter
     sosb1 = signal.butter(3,20,btype='lowpass',fs=50,output='sos')
     subj['X_fb'] = signal.sosfilt(sosb1,subj['X_fm'].values)
     subj['Y_fb'] = signal.sosfilt(sosb1,subj['Y_fm'].values)
     subj['Z_fb'] = signal.sosfilt(sosb1,subj['Z_fm'].values)
     subj['A_fb'] = signal.sosfilt(sosb1,subj['A_fm'].values)
-    subj['T_fb'] = signal.sosfilt(sosb1,subj['T_fm'].values)
-    subj['P_fb'] = signal.sosfilt(sosb1,subj['P_fm'].values)
+    subj['Tx_fb'] = signal.sosfilt(sosb1,subj['Tx_fm'].values)
+    subj['Ty_fb'] = signal.sosfilt(sosb1,subj['Ty_fm'].values)
+    subj['Tz_fb'] = signal.sosfilt(sosb1,subj['Tz_fm'].values)
     # PCA for main motion axis extraction (not included in Ortega et al.)
     pca = PCA(n_components=1)
     subj['PCA'] = pca.fit_transform(subj[['X_fb','Y_fb','Z_fb']].values)
@@ -249,8 +268,9 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False
     subj['dY'] = np.gradient(subj['Y_fb'].values)
     subj['dZ'] = np.gradient(subj['Z_fb'].values)
     subj['dA'] = np.gradient(subj['A_fb'].values)
-    subj['dT'] = np.gradient(subj['T_fb'].values)
-    subj['dP'] = np.gradient(subj['P_fb'].values)
+    subj['dTx'] = np.gradient(subj['Tx_fb'].values)
+    subj['dTy'] = np.gradient(subj['Ty_fb'].values)
+    subj['dTz'] = np.gradient(subj['Tz_fb'].values)
     subj['dPCA_f'] = np.gradient(subj['PCA_f'].values)
     # Threshold frequencies for relative peak power calculation
     lf = int(lf*interval)
@@ -273,6 +293,7 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False
     fpeaks = list()
     wfeatures = list()
     wlabels_pca = list()
+    pratios_pca = list()
     displacements = list()
     # Divide time series in 4 s windows, extracts statistical features (Ortega-Anderez,2018) and classify as tremor or non tremor windows (Luft,2019)
     for i in range(0,subj.values.shape[0],int(samples)):
@@ -281,25 +302,29 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False
         Yw = subj['Y_fb'].values[i:i+samples]
         Zw = subj['Z_fb'].values[i:i+samples]
         Aw = subj['A_fb'].values[i:i+samples]
-        Tw = subj['T_fb'].values[i:i+samples]
-        Pw = subj['P_fb'].values[i:i+samples]
+        Txw = subj['Tx_fb'].values[i:i+samples]
+        Tyw = subj['Ty_fb'].values[i:i+samples]
+        Tzw = subj['Tz_fb'].values[i:i+samples]
         pcaw = subj['PCA_f'].values[i:i+samples]
         dXw = subj['dX'].values[i:i+samples]
         dYw = subj['dY'].values[i:i+samples]
         dZw = subj['dZ'].values[i:i+samples]
         dAw = subj['dA'].values[i:i+samples]
-        dTw = subj['dT'].values[i:i+samples]
-        dPw = subj['dP'].values[i:i+samples]
+        dTxw = subj['dTx'].values[i:i+samples]
+        dTyw = subj['dTy'].values[i:i+samples]
+        dTzw = subj['dTz'].values[i:i+samples]
         dpcaw = subj['dPCA_f'].values[i:i+samples]
         if pcaw.shape[0] == samples:
             psdsw, fpeaksw, pratio_pca, freqs = calc_psds(t,Xw,Yw,Zw,Aw,pcaw,window,nperseg,lf,hf,all_psds)
-            displacements.append(calc_displacements(t,Xw,Yw,Zw,Aw,Tw,Pw,pcaw))
+            displacements.append(calc_displacements(t,Xw,Yw,Zw,Aw,Txw,Tyw,Tzw,pcaw))
+            pratios_pca.append(pratio_pca)
             if pratio_pca > th:
                 wlabels_pca.append(1)
             else:
                 wlabels_pca.append(0)
             # time window statistical features            
-            wf = calc_features(Xw,Yw,Zw,Aw,Tw,Pw,dXw,dYw,dZw,dAw,dTw,dPw,pcaw,dpcaw,samples)
+            wf = calc_features(Xw,Yw,Zw,Aw,Txw,Tyw,Tzw,dXw,dYw,dZw,dAw,dTxw,dTyw,dTzw,pcaw,dpcaw,samples)
+            wf = np.hstack((wf,fpeaksw))
             wfeatures.append(wf)
             if all_psds:
                 psds_x.append(psdsw[0])
@@ -318,6 +343,7 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False
     freqs = freqs[lf:hf]
     psds.append(np.stack(psds_pca[:-1]))
     fpeaks.append(np.stack(fpeaks_pca[:-1]))
+    pratios = np.stack(pratios_pca[:-1])
     wlabels = np.stack(wlabels_pca[:-1])
     displacements = np.stack(displacements[:-1])
     wfeatures = np.stack(wfeatures[:-1])    
@@ -330,13 +356,14 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False
         fpeaks.append(np.stack(fpeaks_y[:-1]))
         fpeaks.append(np.stack(fpeaks_z[:-1]))
         fpeaks.append(np.stack(fpeaks_a[:-1]))
-    return psds,displacements,fpeaks,wlabels,wfeatures,freqs
+    return psds,displacements,fpeaks,pratios,wlabels,wfeatures,freqs
 
 def load_subject(subject_id,ids_file,folder):
     ids_file = pd.read_csv(folder+ids_file)
     subject_psds = list()
     subject_displacements = list()
     subject_fpeaks = list()
+    subject_pratios = list()
     subject_wlabels = list()
     subject_wfeatures = list()
     measurements_labels_medication = list()
@@ -348,11 +375,12 @@ def load_subject(subject_id,ids_file,folder):
     i = 0
     p1 = 0
     for measurement_id in ids_file[ids_file['subject_id'] == subject_id].values[:,0]:
-        psds, displacements, fpeaks, wlabels, wfeatures, freqs = load_spectrums(measurement_id,folder,all_psds=False)        
+        psds, displacements, fpeaks, pratios, wlabels, wfeatures, freqs = load_spectrums(measurement_id,folder,all_psds=False)        
         wfeatures[np.isnan(wfeatures)] = 0
         subject_psds.append(psds[0])
         subject_displacements.append(displacements)
         subject_fpeaks.append(fpeaks[0])
+        subject_pratios.append(pratios)
         subject_wlabels.append(wlabels)
         subject_wfeatures.append(wfeatures)
         twfeatures.append(wfeatures[np.where(wlabels==1),:][0,:,:])
@@ -371,7 +399,7 @@ def load_subject(subject_id,ids_file,folder):
     measurements_labels = np.hstack((measurements_labels_medication,measurements_labels_dyskinesia))
     measurements_labels = np.hstack((measurements_labels,measurements_labels_tremor))
     
-    return subject_psds,subject_displacements,subject_fpeaks,subject_wlabels,subject_wfeatures,measurements_labels,freqs,twfeatures[1:,:]
+    return subject_psds,subject_displacements,subject_fpeaks,subject_pratios,subject_wlabels,subject_wfeatures,measurements_labels,freqs,twfeatures[1:,:]
 
 #-----------------------------------------------------------------------------
 #%%
@@ -399,10 +427,11 @@ if __name__ == '__main__':
             measurements.create_dataset('PSD'+n,data=data[0][i])
             measurements.create_dataset('displacements'+n,data=data[1][i])
             measurements.create_dataset('fpeaks'+n,data=data[2][i])
-            measurements.create_dataset('wlabels'+n,data=data[3][i])
-            measurements.create_dataset('wfeatures'+n,data=data[4][i])
-        subj.create_dataset('labels', data=data[5])
-        subj.create_dataset('freqs', data=data[6])
-        subj.create_dataset('twfeatures', data=data[7])
+            measurements.create_dataset('pratios'+n,data=data[3][i])
+            measurements.create_dataset('wlabels'+n,data=data[4][i])
+            measurements.create_dataset('wfeatures'+n,data=data[5][i])
+        subj.create_dataset('labels', data=data[6])
+        subj.create_dataset('freqs', data=data[7])
+        subj.create_dataset('twfeatures', data=data[8])
     
     print('Prepare data done!')

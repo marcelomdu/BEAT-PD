@@ -106,14 +106,14 @@ if __name__ == '__main__':
         #     QuadraticDiscriminantAnalysis()]
         
         
-        k_fold_fits = 100
+        k_fold_fits = 10
         # figure = plt.figure(figsize=(27, 9))
         i = 1
         # iterate over datasets
         for ds_cnt, ds in enumerate(datasets):
             # clf = AdaBoostClassifier()
-            clf = DecisionTreeClassifier(max_depth=100)
-            # clf = MLPClassifier(hidden_layer_sizes=(80, ),max_iter=5000,learning_rate='adaptive')
+            # clf = DecisionTreeClassifier(max_depth=None)
+            clf = MLPClassifier(hidden_layer_sizes=(500, ),max_iter=5000,learning_rate='adaptive')
             # preprocess dataset, split into training and test part
             X, y = ds
             X = StandardScaler().fit_transform(X)
@@ -137,7 +137,7 @@ if __name__ == '__main__':
                                 features = X_train[np.where(selected_samples==1)]
                                 y_true = y_train[np.where(selected_samples==1)]
                                 labels = y_train_enc[np.where(selected_samples==1)][:,i]    
-                                skb = SelectKBest(k='all')                        
+                                skb = SelectKBest(k=100)                        
                                 skb.fit(features,labels)
                                 features = skb.transform(features)
                                 test_features = skb.transform(X_test)
