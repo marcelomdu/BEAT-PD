@@ -220,9 +220,10 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8,th=0.4,all_psds=False
         subj = subj[['Timestamp','X','Y','Z']]
     t = subj.values[:,0]
     # Calculate A as the magnitude of (x,y,z) vector
-    subj['A'] = np.sqrt(np.add(np.power(subj.values[:,1],2),np.add(np.power(subj.values[:,2],2),np.power(subj.values[:,3],2)))) # Rho
-    subj['T'] = np.arctan(np.divide(np.sqrt(np.add(np.power(subj.values[:,1],2),np.power(subj.values[:,2],2))),subj.values[:,3])) # Theta
-    subj['P'] = np.arctan(np.sqrt(np.divide(subj.values[:,2],subj.values[:,1]))) # Phi
+    x2y2 = np.add(np.power(subj.values[:,1],2),np.power(subj.values[:,2],2))
+    subj['A'] = np.sqrt(np.add(x2y2,np.power(subj.values[:,3],2))) # Rho
+    subj['T'] = np.arctan2(subj.values[:,3],np.sqrt(x2y2)) # Theta
+    subj['P'] = np.arctan2(subj.values[:,2],subj.values[:,1]) # Phi
     # Median filter
     subj['X_fm'] = subj['X']#signal.medfilt(subj['X'].values,kernel_size=[7])#
     subj['Y_fm'] = subj['Y']#signal.medfilt(subj['Y'].values,kernel_size=[7])#

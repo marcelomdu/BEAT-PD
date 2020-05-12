@@ -55,7 +55,7 @@ def load_pf_hists(path,subject,classifier,scaler=False,pca=False):
                 tdisps_i = tdisps[np.where(twclusts==i)]#[:,4]
                 tdisps_i = np.sum(tdisps_i,axis=0)/n_m
             else:
-                tdisps_i = np.zeros(5)
+                tdisps_i = np.zeros(7)
             tfpeaks_i = tfpeaks[np.where(twclusts==i)]
             hist_tfpeaks = np.zeros(freqs.shape[0])
             dict_tfpeaks = {i:0 for i in np.unique(tfpeaks_i)}
