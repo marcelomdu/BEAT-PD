@@ -57,20 +57,20 @@ def print_scores(sub_ids,sub_scores):
     for item in range(len(sub_scores[n])):
       print("Split {}: {}".format(item,np.array(sub_scores[n][item])))
 
-def zero_pad(features):
+def zero_pad(features,max_len=None):
     """
     zero pad examples to the right until max_len
     """
     shapes = [item.shape[0] for item in features]
     shape1 = features[0].shape[1]
-    max_val = max(shapes)
-    pad_values = [max_val - item.shape[0] for item in features]
+    if max_len==None:
+        max_len = max(shapes)
+    pad_values = [max_len - item.shape[0] for item in features]
     for n in range(len(pad_values)):
         if pad_values[n]>0:
             zeros = np.zeros([pad_values[n],shape1])
             features[n] = np.concatenate((zeros,features[n]),axis=0)
-    
-    return features, max_val
+    return features, max_len
 
 def seq2one(vocab, input_shape):
     model = Sequential()
@@ -123,7 +123,7 @@ for subject in subjects_list:
     
     # features, max_len = aug_pad(features)
     train_features, max_len = zero_pad(train_features)
-    test_features, _ = zero_pad(test_features)
+    test_features, _ = zero_pad(test_features,max_len=max_len)
 
     if symptom == 'medication': label_index = 0
     if symptom == 'dyskinesia': label_index = 1
