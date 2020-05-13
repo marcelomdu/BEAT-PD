@@ -116,9 +116,6 @@ if __name__ == '__main__':
     d = dict(f[subject]['measurements'])
     examples = [k for (k,v) in d.items() if 'time_series' in k]
     features =  [v[:][:,-11:] for (k,v) in d.items() if 'time_series' in k]
-    # wlabels =  [v[:] for (k,v) in d.items() if 'wlabels' in k]
-    
-    # tfeatures = get_tremor_windows(features, wlabels)
     
     features, max_len = aug_pad(features)
 
@@ -126,19 +123,6 @@ if __name__ == '__main__':
     labels = to_categorical(labels,5)
 
     train_inputs, test_inputs, train_labels, test_labels = train_test_split(features, labels, train_size=0.8, random_state=42)
-
-    ##get augmented dataset:
-    # train_inputs_augmented = []
-    # train_labels_augmented = []
-    # for n in range(len(train_inputs)):
-    #         augmented_example = []
-    #         augmented_labels =[]
-    #         augmented_input = generate_subsets(train_inputs[n],5)
-    #         augmented_label = generate_subsets(train_labels[n],5)
-    #         train_inputs_augmented.append(augmented_input)
-    #         train_labels_augmented.append(augmented_label)
-    # train_inputs = train_inputs_augmented
-    # train_labels = train_labels_augmented
 
     vocab = 5
     model = seq2one(vocab, input_shape=(max_len,features[0].shape[1]))
