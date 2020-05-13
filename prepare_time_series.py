@@ -9,7 +9,7 @@ from scipy import signal
 from numba import jit
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--study', type=str, default='CIS',
+parser.add_argument('--study', type=str, default='REAL',
                     help='study name',choices=['CIS','REAL'])
 parser.add_argument('--dataset', default='Train',
                     help='select train or test data',choices=['Train','Test'])
@@ -89,6 +89,7 @@ def load_time_series(x,folder):
 def load_subject(subject_id,ids_file,folder,dataset):
     ids_file = pd.read_csv(folder+ids_file)
     subject_time_series = list()
+    measurements_ids = list()
     measurements_labels_medication = list()
     measurements_labels_dyskinesia = list()
     measurements_labels_tremor = list()
@@ -103,6 +104,7 @@ def load_subject(subject_id,ids_file,folder,dataset):
             if os.fsencode(measurement_id+'.csv') in valid_train_files:
                 time_series = load_time_series(measurement_id,folder)        
                 subject_time_series.append(time_series)
+                measurements_ids.append(np.string_(measurement_id))
                 measurements_labels_medication.append(ids_file['on_off'][ids_file['measurement_id'] == measurement_id].values.astype(int))
                 measurements_labels_dyskinesia.append(ids_file['dyskinesia'][ids_file['measurement_id'] == measurement_id].values.astype(int))
                 measurements_labels_tremor.append(ids_file['tremor'][ids_file['measurement_id'] == measurement_id].values.astype(int))
@@ -120,16 +122,18 @@ def load_subject(subject_id,ids_file,folder,dataset):
             if os.fsencode(measurement_id+'.csv') in valid_train_files:
                 time_series = load_time_series(measurement_id,folder)        
                 subject_time_series.append(time_series)
+                measurements_ids.append(np.string_(measurement_id))
                 i+=1
                 p2 = int((1-(n-i)/n)*100)
                 if p2>p1:
                     print("{}: {}".format(subject_id,p2)+"%")
                     p1 = p2
 
+    measurements_ids = np.stack(measurements_ids)
     measurements_labels = np.hstack((measurements_labels_medication,measurements_labels_dyskinesia))
     measurements_labels = np.hstack((measurements_labels,measurements_labels_tremor))
     
-    return subject_time_series,measurements_labels
+    return subject_time_series,measurements_labels,measurements_ids
 
 #-----------------------------------------------------------------------------
 
@@ -178,5 +182,6 @@ if __name__ == '__main__':
             measurements.create_dataset('time_series'+n,data=data[0][i])
         if dataset == "Train":
             subj.create_dataset('labels', data=data[1])
+        subj.create_dataset('ids', data=data[2])
     
     print('Prepare data done!')
