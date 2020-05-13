@@ -18,7 +18,7 @@ from collections import defaultdict
 from itertools import compress
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--study', type=str, default='REAL',
+parser.add_argument('--study', type=str, default='CIS',
                     help='study name',choices=['CIS','REAL'])
 parser.add_argument('--symptom', type=str, default='tremor',
                     help='study name',choices=['medication','dyskinesia','tremor'])
@@ -115,40 +115,42 @@ subject_preds = pd.DataFrame()
 
 for subject in subjects_list:
     
-    print("Subject: ",subject)
-    d_train = dict(train_f[subject]['measurements'])
-    d_test = dict(test_f[subject]['measurements'])
-    examples = [k for (k,v) in d_train.items() if 'time_series' in k]
-    train_features = [v[:] for (k,v) in d_train.items() if 'time_series' in k]
-    test_features = [v[:] for (k,v) in d_test.items() if 'time_series' in k]
-    test_measurement_ids = np.stack([ids.decode('utf-8') for ids in test_f[str(subject)]['ids'][()]])
-    
-    train_features, max_len = zero_pad(train_features)
-    test_features, _ = zero_pad(test_features,max_len=max_len)
+    if subject != 1023:
 
-    if symptom == 'medication': label_index = 0
-    if symptom == 'dyskinesia': label_index = 1
-    if symptom == 'tremor': label_index = 2
+        print("Subject: ",subject)
+        d_train = dict(train_f[subject]['measurements'])
+        d_test = dict(test_f[subject]['measurements'])
+        examples = [k for (k,v) in d_train.items() if 'time_series' in k]
+        train_features = [v[:] for (k,v) in d_train.items() if 'time_series' in k]
+        test_features = [v[:] for (k,v) in d_test.items() if 'time_series' in k]
+        test_measurement_ids = np.stack([ids.decode('utf-8') for ids in test_f[str(subject)]['ids'][()]])
 
-    train_labels = [v[:][:][label_index] for v in train_f[str(subject)]['labels']]
-    train_features = list(compress(train_features,np.stack(train_labels)>=0))
-    train_labels = list(compress(train_labels,np.stack(train_labels)>=0))
-    # if any(element<0 for element in labels):
-    if len(train_labels)==0:
-      print("NaN Values. Skipping subject...")
-      continue
-    
-    train_labels = to_categorical(train_labels,5)
+        train_features, max_len = zero_pad(train_features)
+        test_features, _ = zero_pad(test_features,max_len=max_len)
 
-    # train_inputs, test_inputs, train_labels, test_labels = train_test_split(features, labels, train_size=0.8, random_state=42)
-    model = train_model(train_features, train_labels)
-    preds = np.argmax(model.predict(np.array(test_features)),axis=1)
+        if symptom == 'medication': label_index = 0
+        if symptom == 'dyskinesia': label_index = 1
+        if symptom == 'tremor': label_index = 2
 
-    preds_csv = pd.DataFrame()
-    preds_csv['measurement_ids'] = test_measurement_ids
-    preds_csv['prediction'] = preds
-    
-    subject_preds = subject_preds.append(preds_csv)
+        train_labels = [v[:][:][label_index] for v in train_f[str(subject)]['labels']]
+        train_features = list(compress(train_features,np.stack(train_labels)>=0))
+        train_labels = list(compress(train_labels,np.stack(train_labels)>=0))
+        # if any(element<0 for element in labels):
+        if len(train_labels)==0:
+            print("NaN Values. Skipping subject...")
+            continue
+
+        train_labels = to_categorical(train_labels,5)
+
+        model = train_model(train_features, train_labels)
+        preds = model.predict(np.array(test_features))
+        preds = np.argmax(preds,axis=1)
+
+        preds_csv = pd.DataFrame()
+        preds_csv['measurement_ids'] = test_measurement_ids
+        preds_csv['prediction'] = preds
+
+        subject_preds = subject_preds.append(preds_csv)
     
 subject_preds.to_csv(study+"_"+symptom+".csv")
     
