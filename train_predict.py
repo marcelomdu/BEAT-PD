@@ -82,32 +82,11 @@ def seq2one(vocab, input_shape):
             metrics=['accuracy',precision_m,recall_m,f1_m])
     return model
     
-def train_model_2(train_inputs, test_inputs, train_labels, test_labels):
-    epochs = 5
-    batch_size = 16
-    vocab = 5
-
-    model = seq2one(vocab, input_shape=(max_len,features[0].shape[1]))
-    model.fit(np.array(train_inputs),np.array(train_labels),batch_size=batch_size,verbose=1,epochs=epochs)
-    score = model.evaluate(np.array(test_inputs), np.array(test_labels), verbose=0)
-    print('Test loss:', score[0])
-    print('Test accuracy:', score[1])
-    print('Test precision:', score[2])
-    print('Test recall:', score[3])
-    print('Test f1:', score[4])
-    results[str(subject)+'_'+mode] = {'Test loss': score[0],
-                                    'Test accuracy': score[1],
-                                    'Test precision': score[2],
-                                    'Test recall': score[3],
-                                    'Test f1': score[4]}
-    return results
-
-    
 def train_model(train_inputs, train_labels):
     epochs = 5
     batch_size = 16
     vocab = 5
-    model = seq2one(vocab, input_shape=(max_len,features[0].shape[1]))
+    model = seq2one(vocab, input_shape=(max_len,train_inputs[0].shape[1]))
     model.fit(np.array(train_inputs),np.array(train_labels),batch_size=batch_size,verbose=1,epochs=epochs)
     return model
 
