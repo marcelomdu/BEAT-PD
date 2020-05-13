@@ -111,6 +111,8 @@ test_f = hdf5_handler(test_file,'r')
 
 subjects_list = [subject for subject in train_f.keys()]
 
+subject_preds = pd.DataFrame()
+
 for subject in subjects_list:
     
     print("Subject: ",subject)
@@ -118,10 +120,9 @@ for subject in subjects_list:
     d_test = dict(test_f[subject]['measurements'])
     examples = [k for (k,v) in d_train.items() if 'time_series' in k]
     train_features = [v[:] for (k,v) in d_train.items() if 'time_series' in k]
-    test_features = [v[:] for (k,v) in d_train.items() if 'time_series' in k]
+    test_features = [v[:] for (k,v) in d_test.items() if 'time_series' in k]
     test_measurement_ids = np.stack([ids.decode('utf-8') for ids in test_f[str(subject)]['ids'][()]])
     
-    # features, max_len = aug_pad(features)
     train_features, max_len = zero_pad(train_features)
     test_features, _ = zero_pad(test_features,max_len=max_len)
 
@@ -136,15 +137,20 @@ for subject in subjects_list:
     if len(train_labels)==0:
       print("NaN Values. Skipping subject...")
       continue
+    
     train_labels = to_categorical(train_labels,5)
 
     # train_inputs, test_inputs, train_labels, test_labels = train_test_split(features, labels, train_size=0.8, random_state=42)
     model = train_model(train_features, train_labels)
-    preds = np.argmax(model.predict(test_features))
+    preds = np.argmax(model.predict(np.array(test_features)),axis=1)
 
     preds_csv = pd.DataFrame()
     preds_csv['measurement_ids'] = test_measurement_ids
     preds_csv['prediction'] = preds
+    
+    subject_preds = subject_preds.append(preds_csv)
+    
+subject_preds.to_csv(study+"_"+symptom+".csv")
     
     
     
