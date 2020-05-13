@@ -1,10 +1,18 @@
 #%%
+import os
 import contextlib
+import argparse
 import h5py
 import pandas as pd
 import numpy as np
 from scipy import signal
 from numba import jit
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--study', type=str, default='CIS',
+                    help='study name',choices=['CIS','REAL'])
+parser.add_argument('--dataset', default='Train',
+                    help='select train or test data',choices=['Train','Test'])
 
 def hdf5_handler(filename, mode="r"):
     h5py.File(filename, "a").close()
@@ -49,17 +57,16 @@ def load_time_series(x,folder):
         subj = subj[['t','x','y','z']]
     elif 'X' in subj.columns:
         subj = subj[['Timestamp','X','Y','Z']]
-    # Calculate A as the magnitude of (x,y,z) vector
     x2y2 = np.add(np.power(subj.values[:,1],2),np.power(subj.values[:,2],2))
-    subj['A'] = np.sqrt(np.add(x2y2,np.power(subj.values[:,3],2))) # Rho
-    subj['Tx'] = np.arctan2(subj.values[:,3],subj.values[:,2])  # Rotation around x
-    subj['Ty'] = np.arctan2(subj.values[:,3],subj.values[:,1])  # Rotation around y
-    subj['Tz'] = np.arctan2(subj.values[:,2],subj.values[:,1]) # Rotation around z
-    subj['Rho'],subj['Thetax'],subj['Thetay'],subj['Thetaz'] = calc_var_vect_rts(subj[['X','Y','Z']].values)
+    subj['A'] = np.sqrt(np.add(x2y2,np.power(subj.values[:,3],2))) # Vector magnitude
+    subj['Tx'] = np.arctan2(subj.values[:,3],subj.values[:,2])  # Rotation around x axis
+    subj['Ty'] = np.arctan2(subj.values[:,3],subj.values[:,1])  # Rotation around y axis
+    subj['Tz'] = np.arctan2(subj.values[:,2],subj.values[:,1]) # Rotation around z axis
+    subj['Rho'],subj['Thetax'],subj['Thetay'],subj['Thetaz'] = calc_var_vect_rts(subj[['x','y','z']].values) # Differential vector calculation
     # Median filter
-    subj['X_fm'] = signal.medfilt(subj['X'].values,kernel_size=[5])
-    subj['Y_fm'] = signal.medfilt(subj['Y'].values,kernel_size=[5])
-    subj['Z_fm'] = signal.medfilt(subj['Z'].values,kernel_size=[5])
+    subj['X_fm'] = signal.medfilt(subj['x'].values,kernel_size=[5])
+    subj['Y_fm'] = signal.medfilt(subj['y'].values,kernel_size=[5])
+    subj['Z_fm'] = signal.medfilt(subj['z'].values,kernel_size=[5])
     subj['A_fm'] = signal.medfilt(subj['A'].values,kernel_size=[5])
     subj['Tx_fm'] = signal.medfilt(subj['Tx'].values,kernel_size=[5])
     subj['Ty_fm'] = signal.medfilt(subj['Ty'].values,kernel_size=[5])
@@ -75,12 +82,11 @@ def load_time_series(x,folder):
     subj['Ty_fb'] = signal.sosfilt(sosb1,subj['Ty_fm'].values)
     subj['Tz_fb'] = signal.sosfilt(sosb1,subj['Tz_fm'].values)
     subj['Rho_fb'],subj['Thetax_fb'],subj['Thetay_fb'],subj['Thetaz_fb'] = calc_var_vect_rts(subj[['X_fb','Y_fb','Z_fb']].values)
-    # PCA for main motion axis extraction (not included in Ortega et al.)
+    # Mean downsample
     time_series = mean_downsample(subj.values[:,1:],wlen=50)
-    
     return time_series
 
-def load_subject(subject_id,ids_file,folder):
+def load_subject(subject_id,ids_file,folder,dataset):
     ids_file = pd.read_csv(folder+ids_file)
     subject_time_series = list()
     measurements_labels_medication = list()
@@ -90,40 +96,75 @@ def load_subject(subject_id,ids_file,folder):
     n = ids_file[ids_file['subject_id'] == subject_id].values[:,0].shape[0]
     i = 0
     p1 = 0
-    for measurement_id in ids_file[ids_file['subject_id'] == subject_id].values[:,0]:
-        time_series = load_time_series(measurement_id,folder)        
-        subject_time_series.append(time_series)
-        measurements_labels_medication.append(ids_file['on_off'][ids_file['measurement_id'] == measurement_id].values.astype(int))
-        measurements_labels_dyskinesia.append(ids_file['dyskinesia'][ids_file['measurement_id'] == measurement_id].values.astype(int))
-        measurements_labels_tremor.append(ids_file['tremor'][ids_file['measurement_id'] == measurement_id].values.astype(int))
-        i+=1
-        p2 = int((1-(n-i)/n)*100)
-        if p2>p1:
-            print("{}: {}".format(subject_id,p2)+"%")
-            p1 = p2
-    measurements_labels_medication = np.stack(measurements_labels_medication)
-    measurements_labels_dyskinesia = np.stack(measurements_labels_dyskinesia)
-    measurements_labels_tremor = np.stack(measurements_labels_tremor)
+    valid_train_files = os.listdir(os.fsencode(folder))
+
+    if dataset == "Train":
+        for measurement_id in ids_file[ids_file['subject_id'] == subject_id].values[:,0]:
+            if os.fsencode(measurement_id+'.csv') in valid_train_files:
+                time_series = load_time_series(measurement_id,folder)        
+                subject_time_series.append(time_series)
+                measurements_labels_medication.append(ids_file['on_off'][ids_file['measurement_id'] == measurement_id].values.astype(int))
+                measurements_labels_dyskinesia.append(ids_file['dyskinesia'][ids_file['measurement_id'] == measurement_id].values.astype(int))
+                measurements_labels_tremor.append(ids_file['tremor'][ids_file['measurement_id'] == measurement_id].values.astype(int))
+                i+=1
+                p2 = int((1-(n-i)/n)*100)
+                if p2>p1:
+                    print("{}: {}".format(subject_id,p2)+"%")
+                    p1 = p2
+        measurements_labels_medication = np.stack(measurements_labels_medication)
+        measurements_labels_dyskinesia = np.stack(measurements_labels_dyskinesia)
+        measurements_labels_tremor = np.stack(measurements_labels_tremor)
+
+    if dataset == "Test":
+        for measurement_id in ids_file[ids_file['subject_id'] == subject_id].values[:,0]:
+            if os.fsencode(measurement_id+'.csv') in valid_train_files:
+                time_series = load_time_series(measurement_id,folder)        
+                subject_time_series.append(time_series)
+                i+=1
+                p2 = int((1-(n-i)/n)*100)
+                if p2>p1:
+                    print("{}: {}".format(subject_id,p2)+"%")
+                    p1 = p2
+
     measurements_labels = np.hstack((measurements_labels_medication,measurements_labels_dyskinesia))
     measurements_labels = np.hstack((measurements_labels,measurements_labels_tremor))
     
     return subject_time_series,measurements_labels
 
 #-----------------------------------------------------------------------------
-#%%
-    
+
+args = parser.parse_args()
+study = args.study
+dataset = args.dataset
+hdf5_prefix = study+"_"+dataset
+
+if study == "CIS":
+    path="../Datasets/CIS/"+dataset+"/training_data/"
+    if dataset == "Train":
+        ids = "CIS-PD_Training_Data_IDs_Labels.csv"
+    if dataset == "Test":
+        ids = "cis-pd.CIS-PD_Test_Data_IDs.csv"
+
+if study == "REAL":
+    path = "../Datasets/REAL/"+dataset+"/training_data/smartwatch_accelerometer/"
+    if dataset == "Train":
+        ids = "REAL-PD_Training_Data_IDs_Labels.csv"
+    if dataset == "Test":
+        ids = "real-pd.REAL-PD_Test_Data_IDs.csv"
+
 if __name__ == '__main__':
 
-    subjects_ids = [1004]#[1004,1006,1007,1019,1020,1023,1032,1034,1038,1039,1043,1044,1046,1048,1049,1051]
-    ids_file = "CIS-PD_Training_Data_IDs_Labels.csv"
-    folder = "/media/marcelomdu/Data/GIT_Repos/BEAT-PD/Datasets/CIS/Train/training_data/"
-    f = hdf5_handler(folder+'training_data_lstm.hdf5','a')
+    subjects_ids = np.unique(pd.read_csv(path+ids,usecols=[1]).values).tolist()
 
+    f = hdf5_handler(path+hdf5_prefix+'.hdf5','a')
+
+    print('Loading data for study {} at {}.hdf5'.format(study,hdf5_prefix))
+    
     for subject_id in subjects_ids:
         print('Loading subject '+str(subject_id))
         subj = f.create_group(str(subject_id))
         measurements = subj.create_group('measurements')
-        data = load_subject(subject_id,ids_file,folder)
+        data = load_subject(subject_id,ids,path,dataset)
         for i in range(0,len(data[0])):
             if i < 100:
                 if i < 10:
@@ -133,6 +174,7 @@ if __name__ == '__main__':
             else:
                 n = str(i)
             measurements.create_dataset('time_series'+n,data=data[0][i])
-        subj.create_dataset('labels', data=data[1])
+        if dataset == "Train":
+            subj.create_dataset('labels', data=data[1])
     
     print('Prepare data done!')
