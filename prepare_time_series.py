@@ -54,19 +54,19 @@ def mean_downsample(x,wlen):
 def load_time_series(x,folder):
     subj = pd.read_csv(folder+x+".csv")
     if 'x' in subj.columns:
-        subj = subj[['t','x','y','z']]
+        subj = pd.DataFrame(subj[['x','y','z']].values,columns=['X','Y','Z'])
     elif 'X' in subj.columns:
-        subj = subj[['Timestamp','X','Y','Z']]
-    x2y2 = np.add(np.power(subj.values[:,1],2),np.power(subj.values[:,2],2))
-    subj['A'] = np.sqrt(np.add(x2y2,np.power(subj.values[:,3],2))) # Vector magnitude
-    subj['Tx'] = np.arctan2(subj.values[:,3],subj.values[:,2])  # Rotation around x axis
-    subj['Ty'] = np.arctan2(subj.values[:,3],subj.values[:,1])  # Rotation around y axis
-    subj['Tz'] = np.arctan2(subj.values[:,2],subj.values[:,1]) # Rotation around z axis
-    subj['Rho'],subj['Thetax'],subj['Thetay'],subj['Thetaz'] = calc_var_vect_rts(subj[['x','y','z']].values) # Differential vector calculation
+        subj = subj[['X','Y','Z']]
+    x2y2 = np.add(np.power(subj['X'].values,2),np.power(subj['Y'].values,2))
+    subj['A'] = np.sqrt(np.add(x2y2,np.power(subj['Z'].values,2))) # Vector magnitude
+    subj['Tx'] = np.arctan2(subj['Z'].values,subj['Y'].values)  # Rotation around x axis
+    subj['Ty'] = np.arctan2(subj['Z'].values,subj['X'].values)  # Rotation around y axis
+    subj['Tz'] = np.arctan2(subj['Y'].values,subj['X'].values) # Rotation around z axis
+    subj['Rho'],subj['Thetax'],subj['Thetay'],subj['Thetaz'] = calc_var_vect_rts(subj[['X','Y','Z']].values) # Differential vector calculation
     # Median filter
-    subj['X_fm'] = signal.medfilt(subj['x'].values,kernel_size=[5])
-    subj['Y_fm'] = signal.medfilt(subj['y'].values,kernel_size=[5])
-    subj['Z_fm'] = signal.medfilt(subj['z'].values,kernel_size=[5])
+    subj['X_fm'] = signal.medfilt(subj['X'].values,kernel_size=[5])
+    subj['Y_fm'] = signal.medfilt(subj['Y'].values,kernel_size=[5])
+    subj['Z_fm'] = signal.medfilt(subj['Z'].values,kernel_size=[5])
     subj['A_fm'] = signal.medfilt(subj['A'].values,kernel_size=[5])
     subj['Tx_fm'] = signal.medfilt(subj['Tx'].values,kernel_size=[5])
     subj['Ty_fm'] = signal.medfilt(subj['Ty'].values,kernel_size=[5])
@@ -139,17 +139,19 @@ dataset = args.dataset
 hdf5_prefix = study+"_"+dataset
 
 if study == "CIS":
-    path="../Datasets/CIS/"+dataset+"/training_data/"
     if dataset == "Train":
+        path="../Datasets/CIS/training_data/"
         ids = "CIS-PD_Training_Data_IDs_Labels.csv"
     if dataset == "Test":
+        path="../Datasets/CIS/testing_data/"
         ids = "cis-pd.CIS-PD_Test_Data_IDs.csv"
 
 if study == "REAL":
-    path = "../Datasets/REAL/"+dataset+"/training_data/smartwatch_accelerometer/"
     if dataset == "Train":
+        path = "../Datasets/REAL/training_data/smartwatch_accelerometer/"
         ids = "REAL-PD_Training_Data_IDs_Labels.csv"
     if dataset == "Test":
+        path = "../Datasets/REAL/testing_data/smartwatch_accelerometer/"
         ids = "real-pd.REAL-PD_Test_Data_IDs.csv"
 
 if __name__ == '__main__':
