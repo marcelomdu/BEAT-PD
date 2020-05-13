@@ -278,7 +278,7 @@ def load_spectrums(x,folder,interval=4,overlap=0,lf=4,hf=8.5,th=0.4,all_psds=Fal
     nperseg = samples
     tau = nperseg/5
     window = signal.windows.exponential(nperseg,tau=tau)
-    window = 'hann'
+    # window = 'hann'
     psds_x = list()
     psds_y = list()
     psds_z = list()

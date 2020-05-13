@@ -9,6 +9,9 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import Embedding, LSTM, Dense, Activation, Bidirectional
 from tensorflow.keras.losses import *
 import tensorflow.keras.backend as K
+
+from plot_cm import plot_confusion_matrix
+
 import sys
 import h5py
 from scipy.stats import mode
@@ -30,7 +33,7 @@ def seq2one(vocab, input_shape):
     
     model = Sequential()
 
-    model.add(Bidirectional(LSTM(123,input_shape=input_shape)))
+    model.add(Bidirectional(LSTM(1024,input_shape=input_shape)))
     model.add(Dense(vocab))
     model.add(Activation('softmax'))
     model.compile(loss='categorical_crossentropy',
@@ -78,21 +81,28 @@ def zero_pad(features):
     
     return features, max_val
 
-def aug_pad(features):
+def aug_pad(ft):
     """
     zero pad examples to the right until max_len
     """
-    shapes = [item.shape[0] for item in features]
-    shape1 = features[0].shape[1]
+    shapes = [item.shape[0] for item in ft]
+    shape1 = ft[0].shape[1]
     max_len = max(shapes)
-    for i in range(0,len(features)):
-        s_len = features[i].shape[0]
+    for i in range(0,len(ft)):
+        s_len = ft[i].shape[0]
         if s_len < max_len:
-            for j in range(0,int(np.round(max_len/s_len))):
-                features[i] = np.vstack((features[i],features[i]))
-            features[i] = features[i][-max_len:]
+            for j in range(0,np.min([int(np.round(max_len/s_len)),10])):
+                ft[i] = np.vstack((ft[i],ft[i]))
+            ft[i] = ft[i][-max_len:]
     
-    return features, max_len
+    return ft, max_len
+
+def get_tremor_windows(ft,wlabels):
+    tft = list()
+    for i in range(0,len(ft)):
+        tft.append(ft[i][np.where(wlabels[i]==1),:][0,:,:])
+    
+    return tft
 
 
 if __name__ == '__main__':
@@ -100,13 +110,15 @@ if __name__ == '__main__':
     subjects_list = ['1004']
     subject = subjects_list[0]
 
-    file = path+"training_data_preclustering_1004.hdf5"
+    file = path+"training_data_lstm.hdf5"
     f = h5py.File(file,'r')
 
     d = dict(f[subject]['measurements'])
-    examples = [k for (k,v) in d.items() if 'wfeatures' in k]
-    features =  [v[:] for (k,v) in d.items() if 'wfeatures' in k]
-    # flabels =  [v[:] for (k,v) in d.items() if 'wlabels' in k]
+    examples = [k for (k,v) in d.items() if 'time_series' in k]
+    features =  [v[:][:,-11:] for (k,v) in d.items() if 'time_series' in k]
+    # wlabels =  [v[:] for (k,v) in d.items() if 'wlabels' in k]
+    
+    # tfeatures = get_tremor_windows(features, wlabels)
     
     features, max_len = aug_pad(features)
 
@@ -130,7 +142,7 @@ if __name__ == '__main__':
 
     vocab = 5
     model = seq2one(vocab, input_shape=(max_len,features[0].shape[1]))
-    model.fit(np.array(train_inputs),np.array(train_labels),batch_size=16,verbose=1,epochs=30)
+    model.fit(np.array(train_inputs),np.array(train_labels),batch_size=1,verbose=1,epochs=15)
 
     score = model.evaluate(np.array(test_inputs), np.array(test_labels), verbose=0)
     print('Test loss:', score[0])
@@ -138,3 +150,16 @@ if __name__ == '__main__':
     print('Test precision:', score[2])
     print('Test recall:', score[3])
     print('Test f1:', score[4])
+    
+    true = np.argmax(test_labels,axis=1)
+    preds = np.argmax(model.predict(np.array(test_inputs)),axis=1)
+    
+    class_names = np.array([0,1,2,3])
+    
+    # Plot non-normalized confusion matrix
+    plot_confusion_matrix(true, preds, classes=class_names,
+                        title='Confusion matrix, without normalization')
+
+    # Plot normalized confusion matrix
+    plot_confusion_matrix(true, preds, classes=class_names, normalize=True,
+                        title='Normalized confusion matrix')
