@@ -115,42 +115,39 @@ subject_preds = pd.DataFrame()
 
 for subject in subjects_list:
     
-    if subject != 1023:
+    print("Subject: ",subject)
+    d_train = dict(train_f[subject]['measurements'])
+    d_test = dict(test_f[subject]['measurements'])
+    examples = [k for (k,v) in d_train.items() if 'time_series' in k]
+    train_features = [v[:] for (k,v) in d_train.items() if 'time_series' in k]
+    test_features = [v[:] for (k,v) in d_test.items() if 'time_series' in k]
+    test_measurement_ids = np.stack([ids.decode('utf-8') for ids in test_f[str(subject)]['ids'][()]])
 
-        print("Subject: ",subject)
-        d_train = dict(train_f[subject]['measurements'])
-        d_test = dict(test_f[subject]['measurements'])
-        examples = [k for (k,v) in d_train.items() if 'time_series' in k]
-        train_features = [v[:] for (k,v) in d_train.items() if 'time_series' in k]
-        test_features = [v[:] for (k,v) in d_test.items() if 'time_series' in k]
-        test_measurement_ids = np.stack([ids.decode('utf-8') for ids in test_f[str(subject)]['ids'][()]])
+    train_features, max_len = zero_pad(train_features)
+    test_features, _ = zero_pad(test_features,max_len=max_len)
 
-        train_features, max_len = zero_pad(train_features)
-        test_features, _ = zero_pad(test_features,max_len=max_len)
+    if symptom == 'medication': label_index = 0
+    if symptom == 'dyskinesia': label_index = 1
+    if symptom == 'tremor': label_index = 2
 
-        if symptom == 'medication': label_index = 0
-        if symptom == 'dyskinesia': label_index = 1
-        if symptom == 'tremor': label_index = 2
+    train_labels = [v[:][:][label_index] for v in train_f[str(subject)]['labels']]
+    train_features = list(compress(train_features,np.stack(train_labels)>=0))
+    train_labels = list(compress(train_labels,np.stack(train_labels)>=0))
+    if len(train_labels)==0:
+        print("NaN Values. Skipping subject...")
+        continue
 
-        train_labels = [v[:][:][label_index] for v in train_f[str(subject)]['labels']]
-        train_features = list(compress(train_features,np.stack(train_labels)>=0))
-        train_labels = list(compress(train_labels,np.stack(train_labels)>=0))
-        # if any(element<0 for element in labels):
-        if len(train_labels)==0:
-            print("NaN Values. Skipping subject...")
-            continue
+    train_labels = to_categorical(train_labels,5)
 
-        train_labels = to_categorical(train_labels,5)
+    model = train_model(train_features, train_labels)
+    preds = model.predict(np.array(test_features))
+    preds = np.argmax(preds,axis=1)
 
-        model = train_model(train_features, train_labels)
-        preds = model.predict(np.array(test_features))
-        preds = np.argmax(preds,axis=1)
+    preds_csv = pd.DataFrame()
+    preds_csv['measurement_id'] = test_measurement_ids
+    preds_csv['prediction'] = preds
 
-        preds_csv = pd.DataFrame()
-        preds_csv['measurement_ids'] = test_measurement_ids
-        preds_csv['prediction'] = preds
-
-        subject_preds = subject_preds.append(preds_csv)
+    subject_preds = subject_preds.append(preds_csv)
     
 subject_preds.to_csv(study+"_"+symptom+".csv")
     
